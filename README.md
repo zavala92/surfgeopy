@@ -39,11 +39,11 @@ where $\sigma$ is a mapping from the reference square $\square_2$ to the the ref
 - We compute  $Q_{G_{2,k}} \varphi_i$ be the vector-valued tensor-polynomial interpolant of $\varphi_i$ in the Chebyshev--Lobbatto grid
 
 - $Q_{G_{2,k}} \varphi_i = \sum_{\alpha \in A_{2,k}} \varphi_i(p_\alpha)L_{\alpha} = \sum_{\alpha \in A_{2,k}}b_\alpha N_{\alpha}$
-  where the coefficients $b_\alpha \in \R$ of the Newton interpolation can be computed in closed form.
+  where the coefficients $b_\alpha \in \mathbf{R}$ of the Newton interpolation can be computed in closed form.
 
 Substituting the surface geometry $\varphi_i$ with Chebyshev–Lobatto interpolants $Q_{G_{2,k}} \varphi_i$, yields a closed-form expression for the integral. This expression can be accurately computed using high-order quadrature rules.
 
- $\int_S fdS \approx\sum_{i=1}^K \int_{\square_2} (f\circ\varphi_i)(\mathrm{x}) \sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{x}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{x}))} d\mathrm{x}\approx \sum_{i=1}^K \sum_{\mathrm{p} \in P}\omega_{\mathrm{p}} (f \circ\varphi_i)(\mathrm{p})\sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{p}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{p}))}.$
+ $\int_S fdS \approx\sum_{i=1,...,K} \int_{\square_2} (f\circ\varphi_i)(\mathrm{x}) \sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{x}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{x}))} d\mathrm{x}\approx \sum_{i=1,...,K} \sum_{\mathrm{p} \in P}\omega_{\mathrm{p}} (f \circ\varphi_i)(\mathrm{p})\sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{p}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{p}))}.$
 
 
 
@@ -57,13 +57,19 @@ Substituting the surface geometry $\varphi_i$ with Chebyshev–Lobatto interpola
 💝 Results ! 💝
 </h2>                      
 
-<img src="images/bionc_pict.png" alt="drawing" width="280"/>
-<img src="images/genus_pict.png" alt="drawing" width="280"/>
-<img src="images/torus_pict_R=0.5.png" alt="drawing" width="280"/>
+<div style="white-space: nowrap;">
+    <img src="images/bionc_pict.png" alt="drawing" width="250" style="display:inline-block;"/>
+    <img src="images/genus_pict.png" alt="drawing" width="250" style="display:inline-block;"/>
+    <img src="images/torus_pict_R=0.5.png" alt="drawing" width="250" style="display:inline-block;"/>
+</div>
 
-<img src="images/G_bonnet_for_bionc_linf.png" alt="drawing" width="280"/>
-<img src="images/G_bonnet_for_genus_2_linf.png" alt="drawing" width="280"/>
-<img src="images/G_bonnet_for_torus_linf2_new.png" alt="drawing" width="280"/>
+
+<div style="white-space: nowrap;">
+    <img src="images/G_bonnet_for_bionc_linf.png" alt="drawing" width="250" style="display:inline-block;"/>
+    <img src="images/G_bonnet_for_genus_2_linf.png" alt="drawing" width="250" style="display:inline-block;"/>
+    <img src="images/G_bonnet_for_torus_linf2_new.png" alt="drawing" width="250" style="display:inline-block;"/>
+</div>
+
 
 
 ## Refinement  
@@ -176,8 +182,6 @@ below.
 }
 ```
 
-
 ## License
 
 [MIT](LICENSE)
-
