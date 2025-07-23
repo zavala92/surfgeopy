@@ -156,10 +156,10 @@ with tax funds on the basis of the budget approved by the Saxony State Parliamen
 ## 👷 Development team
 
 ### Main code development
-- Gentian Zavalani (HZDR/CASUS) <g.zavalani@hzdr.de>
+- Gentian Zavalani (HZDR/CASUS) <gentian.zavalani@tu-dresden.de>
 
 ### Mathematical foundation
-- Gentian Zavalani (HZDR/CASUS) <g.zavalani@hzdr.de>
+- Gentian Zavalani (HZDR/CASUS) <gentian.zavalani@tu-dresden.de>
 - Oliver Sander (TU Dresden) <oliver.sander@tu-dresden.de>
 - Michael Hecht (HZDR/CASUS) <m.hecht@hzdr.de>
 
