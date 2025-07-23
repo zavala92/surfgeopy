@@ -213,11 +213,11 @@ def quadrature_surf_tri(
 
         if quadrature_rule == 'Pull_back_Gauss':
             for qq in range(nqp):
-                pnts[index] = newt_poly(np.array([ksi[qq, 0], ksi[qq, 1]]))
+                pnts[index] = newt_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
                 # evaluate ∂_s at the quadrature points
-                p_s = ds_poly(np.array([ksi[qq, 0], ksi[qq, 1]]))
+                p_s = ds_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
                 # evaluate ∂_t at the quadrature points
-                p_t = dt_poly(np.array([ksi[qq, 0], ksi[qq, 1]]))
+                p_t = dt_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
                 # Compute ||∂_s x ∂_t||
                 J = compute_norm(_cross(p_s, p_t))
                 # Please use this in the case you are applying Duffy' transform
@@ -226,11 +226,11 @@ def quadrature_surf_tri(
                 index += 1
         else:
             for qq in range(nqp):
-                pnts[index] = newt_poly(np.array([cs0[qq, 0], cs0[qq, 1]]))
+                pnts[index] = newt_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
                 # evaluate ∂_s at the quadrature points
-                p_s = ds_poly(np.array([cs0[qq, 0], cs0[qq, 1]]))
+                p_s = ds_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
                 # evaluate ∂_t at the quadrature points
-                p_t = dt_poly(np.array([cs0[qq, 0], cs0[qq, 1]]))
+                p_t = dt_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
                 # Compute ||∂_s x ∂_t||
                 J = compute_norm(_cross(p_s, p_t))
                 ws[index] = ws0[qq] * J
