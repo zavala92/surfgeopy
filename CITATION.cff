@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use surfgeopy in your research, please cite the associated paper."
+title: "surfgeopy: High-order integration on implicit triangulated surfaces"
+authors:
+  - family-names: Zavalani
+    given-names: Gentian
+  - family-names: Sander
+    given-names: Oliver
+  - family-names: Hecht
+    given-names: Michael
+license: MIT
+repository-code: "https://codebase.helmholtz.cloud/interpol/surfgeopy"
+keywords:
+  - surface integration
+  - implicit surfaces
+  - high-order quadrature
+  - triangulated manifolds
+

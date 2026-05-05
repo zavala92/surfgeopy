@@ -1,7 +1,18 @@
 surfgeopy Documentation
 =======================
 
-Welcome to the documentation for surfgeopy, a Python package for calculating surface integrals over smooth embedded manifolds.
+``surfgeopy`` is a Python package for high-order integration on smooth embedded
+surfaces with an implicit representation. It starts from a triangulated
+reference mesh, projects interpolation nodes to a level set, builds curved
+surface patches, and evaluates surface integrals with high-order quadrature.
+
+Start Here
+----------
+
+New users should begin with :doc:`install`, :doc:`quickstart`, and
+:doc:`api_guide`. For numerical options, see :doc:`quadrature` and
+:doc:`diagnostics`. For visual examples, see :doc:`gallery` and
+:doc:`examples`.
 
 Introduction
 ------------
@@ -100,12 +111,26 @@ For details on High-order integration on regular triangulated manifolds through 
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
+   :caption: User Guide
 
    install
+   quickstart
+   concepts
+   api_guide
+   quadrature
+   diagnostics
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+
    examples
-   
+   gallery
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference
 
-   
-
+   modules
+   surfgeopy
+   citation

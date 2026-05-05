@@ -6,9 +6,30 @@
 ![](./images/surfgeopy_logo.png)
 `surfgeopy` is a Python package that is freely available and open-source. Its purpose is to calculate approximations of surface integrals over smooth embedded manifolds.
 
+`surfgeopy` is designed for high-order integration on smooth embedded surfaces
+when an implicit representation is available. Its core idea is to **pull back
+the surface interpolation task from each triangle to the reference square**.
+There, tensor-product Chebyshev-Lobatto interpolation can be used to build a
+stable high-order curved geometry approximation before evaluating surface
+integrals with high-order quadrature.
+
+## Why surfgeopy?
+
+- High-order surface integration on implicit/level-set surfaces.
+- Square-squeezing pulls interpolation from triangulated manifolds back to the
+  square, where tensor-product interpolation is natural.
+- Curved geometry approximation from a coarse triangulated reference mesh.
+- Explicit configuration of interpolation degree, quadrature degree, refinement,
+  and quadrature rule.
+- Per-face integration values plus quadrature points and weights for diagnostics.
+- Useful for surface PDEs, geometry processing, curvature integrals, and
+  validation problems such as sphere/torus area and Gauss-Bonnet checks.
+
 ## 🎉Table of Contents
 
 - [Background](#background)
+- [Why surfgeopy?](#why-surfgeopy)
+- [Quickstart](#quickstart)
 - [Install](#install)
 - [Usage](#usage)
 - [Development team](#develpment-team)
@@ -17,8 +38,18 @@
 
 ## Background
 
-`surfgeopy` rests on curved surface triangulations realised due to $k^{\text{th}}$-order interpolation of the closest point projection, extending initial linear surface approximations. It achieves this by employing a novel technique called square-squeezing, which involves transforming the interpolation tasks of triangulated manifolds to the standard hypercube using a cube-to-simplex transformation that has been recently introduced.
-To ensure the stability and accuracy of the computations, surfgeopy leverages classic Chebyshev-Lobatto grids. These grids enable the calculation of high-order interpolants for the surface geometry while avoiding Runge's phenomenon, a common issue in numerical analysis.
+`surfgeopy` rests on curved surface triangulations realised through
+$k^{\text{th}}$-order interpolation of the closest point projection, extending
+initial linear surface approximations. The essential step is that the
+interpolation task on each curved triangle is **pulled back to the reference
+square** by square-squeezing: a cube-to-simplex transformation maps the square
+to the reference triangle, so the composed closest-point projection can be
+interpolated on a tensor-product domain.
+
+This pullback to the square is what lets `surfgeopy` use classic
+Chebyshev-Lobatto grids for the geometry approximation. These grids provide
+stable high-order interpolants for the surface geometry and help avoid Runge's
+phenomenon, a common issue in polynomial interpolation on poorly chosen nodes.
 
 
 
@@ -34,7 +65,9 @@ Consider an element $T_{i}$ in a reference surface $T$. We consider the affine t
 Setting
 
 - $\varphi_i : \square_2 \rightarrow S_i, \quad \varphi_i = \pi_i \circ \tau_i\circ \sigma$
-where $\sigma$ is a mapping from the reference square $\square_2$ to the the reference triangle $\Delta_2$.
+where $\sigma$ is the square-squeezing map from the reference square
+$\square_2$ to the reference triangle $\Delta_2$. This composition pulls the
+surface interpolation task back to $\square_2$.
 
 - We compute  $Q_{G_{2,k}} \varphi_i$ be the vector-valued tensor-polynomial interpolant of $\varphi_i$ in the Chebyshev--Lobbatto grid
 
@@ -128,6 +161,43 @@ in the further development of `surfgeopy`.
 - If you would like to use `surfgeopy` in MATLAB, please refer to [this link](https://codebase.helmholtz.cloud/interpol/surfgeopy/-/blob/dev/README_MATLAB.md?ref_type=heads).
 - Documentation: https://surfgeopy.readthedocs.io
 
+## Quickstart
+
+```python
+import numpy as np
+
+from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+
+
+def phi(x: np.ndarray) -> float:
+    return x[0] ** 2 + x[1] ** 2 + x[2] ** 2 - 1.0
+
+
+def grad_phi(x: np.ndarray) -> np.ndarray:
+    return np.array([2.0 * x[0], 2.0 * x[1], 2.0 * x[2]])
+
+
+mesh = SurfaceMesh.from_mat("tests/mesh_test/sphere_N=104.mat")
+surface = LevelSetSurface(mesh, phi, grad_phi)
+config = IntegrationConfig(
+    interpolation_degree=6,
+    refinement_level=1,
+    integration_degree=14,
+    quadrature_rule="Gauss_Legendre",
+)
+
+result = integrate(surface, lambda _: 1.0, config)
+print(result.total)  # approx. 4*pi
+```
+
+Available quadrature rules include:
+
+- `"Pull_back_Gauss"`: simplex rule pulled back through square-squeezing.
+- `"Gauss_Legendre"`: tensor-product Gauss-Legendre rule on the square.
+- `"RecursiveNodes_GaussLegendre"`: simplex Gauss-Legendre rule provided by
+  `recursivenodes`, mapped to the unit triangle and pulled back through
+  square-squeezing.
+
 ## Testing
 
 After installation, we encourage you to at least run the unit tests of `surfgeopy`,
@@ -137,6 +207,27 @@ If you want to run all tests, type:
 
 ```bash
 pytest [-vvv]
+```
+
+## Modern Python API
+
+The high-level API keeps the mesh, level-set surface, numerical configuration,
+and integration result explicit:
+
+```python
+from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+
+mesh = SurfaceMesh.from_mat("tests/mesh_test/sphere_N=104.mat")
+surface = LevelSetSurface(mesh, phi, grad_phi)
+config = IntegrationConfig(
+    interpolation_degree=6,
+    refinement_level=1,
+    integration_degree=14,
+    quadrature_rule="Gauss_Legendre",
+)
+
+result = integrate(surface, lambda _: 1.0, config)
+print(result.total)
 ```
 
 ## Contributing to `surfgeopy`

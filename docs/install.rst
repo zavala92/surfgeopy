@@ -1,27 +1,66 @@
-🛠️ Installation
-===============
+Installation
+============
 
+``surfgeopy`` is currently installed from source.
 
-For this prototype implementation, we recommend installing `surfgeopy` by self-building from the source. Use the `git` version control system to obtain the source code:
+Requirements
+------------
+
+* Python 3.8 or newer
+* ``numpy``
+* ``scipy``
+* ``numba``
+* ``matplotlib``
+* ``minterpy``
+* ``recursivenodes``
+* ``pytest`` for tests
+
+Install From Source
+-------------------
+
+Use ``git`` to obtain the source code:
 
 .. code-block:: bash
 
     git clone https://codebase.helmholtz.cloud/interpol/surfgeopy.git
 
-.. caution::
+Create and activate a virtual environment before installing the package:
 
-    **Switch to Your Virtual Environment:**
+.. code-block:: bash
 
-    Prior to installation, activate the desired virtual environment using either `conda` or `venv`.
+    python -m venv .venv
+    source .venv/bin/activate
 
-Once inside the activated environment, proceed with the installation using [pip]:
+Install in editable mode:
 
 .. code-block:: bash
 
     pip install -e .
 
-The use of the `-e` argument ensures the installation creates symbolic links. This allows any modifications made by the user within the source folders to be reflected in the installed version when importing modules.
+Run Tests
+---------
+
+After installation, run the test suite:
+
+.. code-block:: bash
+
+    pytest
+
+The package depends on ``minterpy`` for polynomial interpolation and
+``recursivenodes`` for optional simplex Gauss-Legendre quadrature rules.
+
+The ``-e`` argument creates an editable install. Changes made in the source
+tree are reflected when importing ``surfgeopy`` from the same environment.
 
 .. warning::
 
     Avoid using the command ``python setup.py install`` to install ``surfgeopy``. This method is discouraged, as the presence of the ``setup.py`` file cannot be guaranteed in the ongoing development of the ``surfgeopy`` library.
+
+Generate Gallery Assets
+-----------------------
+
+To regenerate the first gallery figure and CSV table:
+
+.. code-block:: bash
+
+    python examples/gallery/sphere_area_convergence.py

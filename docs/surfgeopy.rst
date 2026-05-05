@@ -4,6 +4,30 @@ surfgeopy package
 Submodules
 ----------
 
+surfgeopy.api module
+--------------------
+
+.. automodule:: surfgeopy.api
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+surfgeopy.reference\_quadrature module
+--------------------------------------
+
+.. automodule:: surfgeopy.reference_quadrature
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+surfgeopy.surface module
+------------------------
+
+.. automodule:: surfgeopy.surface
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 surfgeopy.quadrature\_points module
 -----------------------------------
 

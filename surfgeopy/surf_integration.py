@@ -1,22 +1,23 @@
-# Imports
+from typing import Callable, Optional, Tuple
+
 import numpy as np
 from minterpy import MultiIndexSet, Grid, NewtonPolynomial
 from minterpy.dds import dds
-from numba import njit
-# Local imports
-from .quadrature_points import quadrule_on_simplex
-from .quadrature_points_gl import gauss_legendre_square
+
+from .reference_quadrature import PULL_BACK_GAUSS, make_reference_quadrature
 from .remesh import subdivide
+from .surface import ImplicitSurface, project_triangle_nodes, simplex_barycentric_coordinates
 from .utils import (
-    SimpleImplicitSurfaceProjection, compute_norm, read_mesh_data,
-    pushforward, pullback, _cross
+    compute_norm, read_mesh_data, pushforward, _cross
 )
-from typing import Callable, Tuple, Optional
 
-__all__ = ['integration', 'compute_surf_quadrature', 'quadrature_surf_tri', 'quadrature_split_surf_tri']
+__all__ = [
+    'integration', 'accumulate_surface_integrals', 'compute_surf_quadrature',
+    'quadrature_surf_tri', 'quadrature_split_surf_tri'
+]
 
-from typing import Callable, Optional
-import numpy as np
+DEFAULT_INTEGRATION_DEGREE = 14
+DEFAULT_QUADRATURE_RULE = PULL_BACK_GAUSS
 
 def integration(
     ls_function: Callable[[np.ndarray], float],
@@ -48,26 +49,34 @@ def integration(
     """
     vertices, faces = read_mesh_data(mesh)
 
-    if deg_integration > 0:
-        if quadrature_rule is None:
-            quadrature_rule = 'Pull_back_Gauss'
-        pnts, ws, offset = compute_surf_quadrature(
-            ls_function, ls_grad_func, vertices, faces,
-            interp_deg, lp_dgr, Refinement, fun_handle, deg_integration, quadrature_rule
-        )
-    else:
-        pnts, ws, offset = compute_surf_quadrature(
-            ls_function, ls_grad_func, vertices, faces,
-            interp_deg, lp_dgr, Refinement, fun_handle
-        )
+    if deg_integration <= 0:
+        deg_integration = DEFAULT_INTEGRATION_DEGREE
+    if quadrature_rule is None:
+        quadrature_rule = DEFAULT_QUADRATURE_RULE
 
-    n_faces = faces.shape[0]
-    fs = np.zeros(n_faces)
-
-    for fun_id in range(n_faces):
-        fs[fun_id] = np.sum(fun_handle(pnts[pid]) * ws[pid] for pid in range(offset[fun_id], offset[fun_id + 1]))
+    pnts, ws, offset = compute_surf_quadrature(
+        ls_function, ls_grad_func, vertices, faces,
+        interp_deg, lp_dgr, Refinement, fun_handle, deg_integration, quadrature_rule
+    )
+    fs = accumulate_surface_integrals(pnts, ws, offset, fun_handle)
 
     return fs
+
+
+def accumulate_surface_integrals(
+    pnts: np.ndarray,
+    ws: np.ndarray,
+    offset: np.ndarray,
+    fun_handle: Callable[[np.ndarray], float],
+) -> np.ndarray:
+    """Accumulate pointwise quadrature data into one integral per face."""
+    values = np.zeros(len(offset) - 1)
+    for fun_id in range(len(values)):
+        values[fun_id] = sum(
+            fun_handle(pnts[pid]) * ws[pid]
+            for pid in range(offset[fun_id], offset[fun_id + 1])
+        )
+    return values
 
 def compute_surf_quadrature(
     ls_function: Callable[[np.ndarray], float],
@@ -99,7 +108,8 @@ def compute_surf_quadrature(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray]: Quadrature points, weights, and offset array.
     """
-    # Initialization
+    surface = ImplicitSurface(ls_function, ls_grad_func)
+
     index = 0
     n_faces = faces.shape[0]
     nv_surf = faces.shape[1]
@@ -107,7 +117,7 @@ def compute_surf_quadrature(
     pnts = np.zeros((max_nv, 3))
     ws = np.zeros(max_nv)
     offset = np.zeros(n_faces + 1, dtype=int)
-    # Go through all the faces
+
     for fun_id in range(n_faces):
         offset[fun_id] = index
 
@@ -120,16 +130,16 @@ def compute_surf_quadrature(
         for j in range(1, n_elem):
             lvids = [0, j, j + 1]
             pnts_tri = vertices[faces[fun_id, lvids]]
-        # Generate quadrature points
+
             if Refinement > 0:
                 index = quadrature_split_surf_tri(
-                    ls_function, ls_grad_func, pnts_tri, np.array([[0, 1, 2]]),
+                    surface.level_set, surface.gradient, pnts_tri, np.array([[0, 1, 2]]),
                     interp_deg, lp_dgr, Refinement, fun_handle, deg_integration,
                     quadrature_rule, pnts, ws, index
                 )
             else:
                 index = quadrature_surf_tri(
-                    ls_function, ls_grad_func, pnts_tri, np.array([[0, 1, 2]]),
+                    surface.level_set, surface.gradient, pnts_tri, np.array([[0, 1, 2]]),
                     interp_deg, lp_dgr, fun_handle, deg_integration,
                     quadrature_rule, pnts, ws, index
                 )
@@ -173,68 +183,41 @@ def quadrature_surf_tri(
     Returns:
         int: Updated index value.
     """
+    surface = ImplicitSurface(ls_function, ls_grad_func)
     n_faces = faces.shape[0]
     mi = MultiIndexSet.from_degree(spatial_dimension=2, poly_degree=interp_deg, lp_degree=lp_dgr)
     grid = Grid(mi)
-    # Transform Chebyshev points from [-1,1]^2 to the reference simplex.
     generating_points = pushforward(grid.unisolvent_nodes, duffy_transform=False)
-    quad_ps = np.array([[(1.0 - gp[0] - gp[1]), gp[0], gp[1]] for gp in generating_points])
+    quad_ps = simplex_barycentric_coordinates(generating_points)
+    reference_quadrature = make_reference_quadrature(deg_integration, quadrature_rule)
+    nqp = reference_quadrature.size
 
-    if quadrature_rule == 'Pull_back_Gauss':
-        ws0, cs0 = quadrule_on_simplex(deg_integration)
-        nqp = ws0.shape[0]
-    # Transform quadrature points from the reference simplex to a unit square
-        ksi = pullback(cs0, duffy_transform=False)
-    else:
-        ws0, cs0 = gauss_legendre_square(deg_integration)
-        nqp = ws0.shape[0]
-     # enlarge the size of quadrature points buffer if inadequate
     if index + n_faces * nqp > len(ws):
         n_new = 2 * len(ws) + n_faces * nqp
         ws.resize(n_new, refcheck=False)
         pnts.resize((n_new, 3), refcheck=False)
    
     for fun_id in range(n_faces):
-        pnts_p = np.zeros((grid.unisolvent_nodes.shape[0], 3))
-        for q, qp in enumerate(quad_ps):
-            pnts_qq = (
-                qp[0] * vertices[faces[fun_id, 0]] +
-                qp[1] * vertices[faces[fun_id, 1]] +
-                qp[2] * vertices[faces[fun_id, 2]]
-            )
-            pnts_p[q] = SimpleImplicitSurfaceProjection(ls_function, ls_grad_func, pnts_qq)
+        pnts_p = project_triangle_nodes(surface, vertices[faces[fun_id]], quad_ps)
 
         interpol_coeffs = np.squeeze(dds(pnts_p, grid.tree))
         newt_poly = NewtonPolynomial(mi, interpol_coeffs)
-        # compute partial derivatives with respect to "s"
         ds_poly = newt_poly.diff([1, 0], backend="numba-par")
-         # compute partial derivatives with respect to "t"
         dt_poly = newt_poly.diff([0, 1], backend="numba-par")
 
-        if quadrature_rule == 'Pull_back_Gauss':
-            for qq in range(nqp):
-                pnts[index] = newt_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
-                # evaluate ∂_s at the quadrature points
-                p_s = ds_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
-                # evaluate ∂_t at the quadrature points
-                p_t = dt_poly(np.array([[ksi[qq, 0], ksi[qq, 1]]]))[0]
-                # Compute ||∂_s x ∂_t||
-                J = compute_norm(_cross(p_s, p_t))
-                # Please use this in the case you are applying Duffy' transform
-                #ws[index] = ws0[qq] * J * (4/(1-cs0[qq, 1]))
-                ws[index] = ws0[qq] * J * (8 / np.sqrt((cs0[qq, 0] - cs0[qq, 1])**2 + 4 * (1 - cs0[qq, 0] - cs0[qq, 1])))
-                index += 1
-        else:
-            for qq in range(nqp):
-                pnts[index] = newt_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
-                # evaluate ∂_s at the quadrature points
-                p_s = ds_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
-                # evaluate ∂_t at the quadrature points
-                p_t = dt_poly(np.array([[cs0[qq, 0], cs0[qq, 1]]]))[0]
-                # Compute ||∂_s x ∂_t||
-                J = compute_norm(_cross(p_s, p_t))
-                ws[index] = ws0[qq] * J
-                index += 1
+        for qq in range(reference_quadrature.size):
+            evaluation_point = reference_quadrature.evaluation_points[qq]
+            evaluation_point = np.array([[evaluation_point[0], evaluation_point[1]]])
+            pnts[index] = newt_poly(evaluation_point)[0]
+            p_s = ds_poly(evaluation_point)[0]
+            p_t = dt_poly(evaluation_point)[0]
+            J = compute_norm(_cross(p_s, p_t))
+            ws[index] = (
+                reference_quadrature.weights[qq] *
+                J *
+                reference_quadrature.weight_scale(qq)
+            )
+            index += 1
 
     return index
 
