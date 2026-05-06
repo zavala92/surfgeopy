@@ -8,7 +8,6 @@ from surfgeopy import (
     IntegrationConfig,
     IntegrationResult,
     LevelSetSurface,
-    RECURSIVE_NODES_GAUSS_LEGENDRE,
     ProjectionResult,
     ReferenceQuadrature,
     SurfaceGeometryResult,
@@ -120,16 +119,6 @@ class TestSurfgeopyFunctions:
         assert quadrature.size == 6
         assert quadrature.evaluation_points.shape == (6, 2)
         assert quadrature.weight_scale(0) > 0
-
-    def test_recursivenodes_reference_quadrature_factory(self):
-        quadrature = make_reference_quadrature(3, RECURSIVE_NODES_GAUSS_LEGENDRE)
-
-        assert isinstance(quadrature, ReferenceQuadrature)
-        assert quadrature.size == 9
-        assert quadrature.reference_points.shape == (9, 2)
-        np.testing.assert_allclose(np.sum(quadrature.weights), 0.5)
-        assert np.all(quadrature.reference_points >= 0.0)
-        assert np.all(np.sum(quadrature.reference_points, axis=1) <= 1.0)
 
     def test_surface_mesh_from_mat(self):
         mesh = SurfaceMesh.from_mat(str(MESH_PATH))

@@ -219,9 +219,6 @@ Available quadrature rules include:
 
 - `"Pull_back_Gauss"`: simplex rule pulled back through square-squeezing.
 - `"Gauss_Legendre"`: tensor-product Gauss-Legendre rule on the square.
-- `"RecursiveNodes_GaussLegendre"`: simplex Gauss-Legendre rule provided by
-  `recursivenodes`, mapped to the unit triangle and pulled back through
-  square-squeezing.
 
 ## Testing
 

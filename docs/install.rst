@@ -12,7 +12,6 @@ Requirements
 * ``numba``
 * ``matplotlib``
 * ``minterpy``
-* ``recursivenodes``
 * ``pytest`` for tests
 
 Install From Source
@@ -46,8 +45,7 @@ After installation, run the test suite:
 
     pytest
 
-The package depends on ``minterpy`` for polynomial interpolation and
-``recursivenodes`` for optional simplex Gauss-Legendre quadrature rules.
+The package depends on ``minterpy`` for polynomial interpolation.
 
 The ``-e`` argument creates an editable install. Changes made in the source
 tree are reflected when importing ``surfgeopy`` from the same environment.

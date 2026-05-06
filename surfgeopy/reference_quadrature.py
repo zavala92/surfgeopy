@@ -1,7 +1,6 @@
 """Reference-domain quadrature helpers."""
 
 from dataclasses import dataclass
-from typing import Tuple
 
 import numpy as np
 
@@ -12,14 +11,12 @@ from .utils import pullback
 __all__ = [
     "PULL_BACK_GAUSS",
     "GAUSS_LEGENDRE",
-    "RECURSIVE_NODES_GAUSS_LEGENDRE",
     "ReferenceQuadrature",
     "make_reference_quadrature",
 ]
 
 PULL_BACK_GAUSS = "Pull_back_Gauss"
 GAUSS_LEGENDRE = "Gauss_Legendre"
-RECURSIVE_NODES_GAUSS_LEGENDRE = "RecursiveNodes_GaussLegendre"
 
 
 @dataclass(frozen=True)
@@ -37,7 +34,7 @@ class ReferenceQuadrature:
 
     def weight_scale(self, index: int) -> float:
         """Return the extra square-squeezing weight scale for one point."""
-        if self.rule not in (PULL_BACK_GAUSS, RECURSIVE_NODES_GAUSS_LEGENDRE):
+        if self.rule != PULL_BACK_GAUSS:
             return 1.0
 
         point = self.reference_points[index]
@@ -57,24 +54,4 @@ def make_reference_quadrature(degree: int, rule: str = PULL_BACK_GAUSS) -> Refer
         weights, reference_points = gauss_legendre_square(degree)
         return ReferenceQuadrature(weights, reference_points, reference_points, rule)
 
-    if rule == RECURSIVE_NODES_GAUSS_LEGENDRE:
-        weights, reference_points = _recursivenodes_simplex_gauss_legendre(degree)
-        evaluation_points = pullback(reference_points, duffy_transform=False)
-        return ReferenceQuadrature(weights, reference_points, evaluation_points, rule)
-
     raise ValueError(f"Unknown quadrature rule: {rule}")
-
-
-def _recursivenodes_simplex_gauss_legendre(degree: int) -> Tuple[np.ndarray, np.ndarray]:
-    """Return recursivenodes Gaussian quadrature on the unit triangle."""
-    try:
-        from recursivenodes.quadrature import simplexgausslegendre
-    except ImportError as exc:
-        raise ImportError(
-            "RecursiveNodes_GaussLegendre requires the recursivenodes package."
-        ) from exc
-
-    biunit_points, biunit_weights = simplexgausslegendre(2, degree)
-    reference_points = (biunit_points.reshape(-1, 2) + 1.0) / 2.0
-    weights = biunit_weights.reshape(-1) / 4.0
-    return weights, reference_points
