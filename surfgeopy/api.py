@@ -5,7 +5,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
-from .reference_quadrature import PULL_BACK_GAUSS
+from .reference_quadrature import DEFAULT_QUADRATURE_RULE
 from .remesh import subdivide_conforming
 from .surf_integration import (
     DEFAULT_INTEGRATION_DEGREE,
@@ -86,7 +86,7 @@ class IntegrationConfig:
     lp_degree: float = float("inf")
     refinement_level: int = 0
     integration_degree: int = DEFAULT_INTEGRATION_DEGREE
-    quadrature_rule: str = PULL_BACK_GAUSS
+    quadrature_rule: str = DEFAULT_QUADRATURE_RULE
 
     def __post_init__(self) -> None:
         if self.interpolation_degree < 1:

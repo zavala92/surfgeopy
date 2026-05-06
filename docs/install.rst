@@ -6,12 +6,13 @@ Installation
 Requirements
 ------------
 
-* Python 3.8 or newer
+* Python 3.10 or newer
 * ``numpy``
 * ``scipy``
 * ``numba``
 * ``matplotlib``
 * ``minterpy``
+* ``modepy``
 * ``pytest`` for tests
 
 Install From Source
@@ -45,7 +46,9 @@ After installation, run the test suite:
 
     pytest
 
-The package depends on ``minterpy`` for polynomial interpolation.
+The package depends on ``minterpy`` for polynomial interpolation and on
+``modepy`` for the optional simplex quadrature families exposed through
+``IntegrationConfig``.
 
 The ``-e`` argument creates an editable install. Changes made in the source
 tree are reflected when importing ``surfgeopy`` from the same environment.

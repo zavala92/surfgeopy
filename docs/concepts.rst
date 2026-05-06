@@ -122,8 +122,8 @@ Quadrature Choices
 ------------------
 
 After the curved patch has been built, ``surfgeopy`` evaluates the integrand
-and geometric Jacobian at quadrature points. The package supports two natural
-families of quadrature rules:
+and geometric Jacobian at quadrature points. The package supports direct square
+rules and several simplex rules that are pulled back through square-squeezing:
 
 ``Gauss_Legendre``
    A tensor-product Gauss--Legendre rule on the square
@@ -134,6 +134,12 @@ families of quadrature rules:
    :math:`\square_2` using the inverse of the square-squeezing map. This keeps
    the rule aligned with the original triangulation while still using the
    square-based interpolation representation.
+
+``ModePy_XiaoGimbutas``, ``ModePy_GrundmannMoeller``, and
+``ModePy_VioreanuRokhlin``
+   Simplex cubature rules supplied by ModePy, mapped from ModePy's biunit
+   triangle to :math:`\Delta_2` and then pulled back through the same
+   square-squeezing map. ``ModePy_VioreanuRokhlin`` is the default rule.
 
 Why the Implicit Representation Matters
 ---------------------------------------

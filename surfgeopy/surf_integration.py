@@ -4,7 +4,7 @@ import numpy as np
 from minterpy import MultiIndexSet, Grid, NewtonPolynomial
 from minterpy.dds import dds
 
-from .reference_quadrature import PULL_BACK_GAUSS, make_reference_quadrature
+from .reference_quadrature import DEFAULT_QUADRATURE_RULE, make_reference_quadrature
 from .remesh import subdivide
 from .surface import ImplicitSurface, project_triangle_nodes, simplex_barycentric_coordinates
 from .utils import (
@@ -17,8 +17,6 @@ __all__ = [
 ]
 
 DEFAULT_INTEGRATION_DEGREE = 14
-DEFAULT_QUADRATURE_RULE = PULL_BACK_GAUSS
-
 def integration(
     ls_function: Callable[[np.ndarray], float],
     ls_grad_func: Callable[[np.ndarray], np.ndarray],
@@ -42,7 +40,9 @@ def integration(
         Refinement (int): Refinement level.
         fun_handle (Callable[[np.ndarray], float], optional): Function to be evaluated on each quadrature point. Defaults to a constant function.
         deg_integration (int, optional): Degree of integration. Defaults to -1 (use default configuration).
-        quadrature_rule (Optional[str], optional): Quadrature rule type. Can be 'Gauss_Legendre' or 'Gauss_Simplex'. Defaults to None.
+        quadrature_rule (Optional[str], optional): Reference quadrature rule,
+            for example 'Pull_back_Gauss', 'Gauss_Legendre', or a 'ModePy_*'
+            simplex rule. Defaults to None.
 
     Returns:
         np.ndarray: Integration values for each curved triangle.
@@ -88,7 +88,7 @@ def compute_surf_quadrature(
     Refinement: int,
     fun_handle: Callable[[np.ndarray], float],
     deg_integration: int = 14,
-    quadrature_rule: str = 'Pull_back_Gauss'
+    quadrature_rule: str = DEFAULT_QUADRATURE_RULE
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute quadrature points and weights on curved triangles.
@@ -103,7 +103,8 @@ def compute_surf_quadrature(
         Refinement: int: Refinement level.
         fun_handle: Callable[[np.ndarray], float]: Function to be evaluated on each quadrature point.
         deg_integration: int: Degree of integration (default: 14).
-        quadrature_rule: str: Quadrature rule type ('Gauss_Legendre' or 'Gauss_Simplex').
+        quadrature_rule: str: Reference quadrature rule, for example
+            'Pull_back_Gauss', 'Gauss_Legendre', or a 'ModePy_*' simplex rule.
 
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray]: Quadrature points, weights, and offset array.
@@ -159,7 +160,7 @@ def compute_surf_geometry(
     lp_dgr: int,
     Refinement: int,
     deg_integration: int = 14,
-    quadrature_rule: str = 'Pull_back_Gauss'
+    quadrature_rule: str = DEFAULT_QUADRATURE_RULE
 ) -> Tuple[
     np.ndarray,
     np.ndarray,
@@ -321,7 +322,8 @@ def quadrature_surf_tri(
         lp_dgr: int: :math:`l_p`-norm, which is used to define the polynomial degree.
         fun_handle: Callable[[np.ndarray], float]: Function to be evaluated on each quadrature point.
         deg_integration: int: Degree of integration.
-        quadrature_rule: str: Quadrature rule type ('Gauss_Legendre' or 'Gauss_Simplex').
+        quadrature_rule: str: Reference quadrature rule, for example
+            'Pull_back_Gauss', 'Gauss_Legendre', or a 'ModePy_*' simplex rule.
         pnts: np.ndarray: Quadrature points array.
         ws: np.ndarray: Quadrature weights array.
         index: int: Current index in the arrays.
@@ -393,7 +395,8 @@ def quadrature_split_surf_tri(
         interp_deg: int: Interpolation degree.
         lp_dgr: int: :math:`l_p`-norm, which is used to define the polynomial degree.
         deg_integration: int: Degree of integration.
-        quadrature_rule: str: Quadrature rule type ('Gauss_Legendre' or 'Gauss_Simplex').
+        quadrature_rule: str: Reference quadrature rule, for example
+            'Pull_back_Gauss', 'Gauss_Legendre', or a 'ModePy_*' simplex rule.
         pnts: np.ndarray: Quadrature points array.
         ws: np.ndarray: Quadrature weights array.
         index: int: Current index in the arrays.

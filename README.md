@@ -1,7 +1,7 @@
 # Surfgeopy
 [![License](https://img.shields.io/github/license/zavala92/surfgeopy?style=flat-square)](https://choosealicense.com/licenses/mit/)
 [![Documentation Status](https://readthedocs.org/projects/surfgeopy/badge/?version=latest)](https://surfgeopy.readthedocs.io/en/latest/?badge=latest)
-[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg?style=flat-square)](https://www.python.org/downloads/release/python-380/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/downloads/release/python-3100/)
 
 ![](./images/surfgeopy_logo.png)
 `surfgeopy` is a freely available, open-source Python package for approximating
@@ -217,8 +217,15 @@ print(geometry.mean_curvature)
 
 Available quadrature rules include:
 
+- `"ModePy_VioreanuRokhlin"`: default Vioreanu-Rokhlin simplex rule from
+  ModePy, mapped to the reference triangle and pulled back through
+  square-squeezing.
 - `"Pull_back_Gauss"`: simplex rule pulled back through square-squeezing.
 - `"Gauss_Legendre"`: tensor-product Gauss-Legendre rule on the square.
+- `"ModePy_XiaoGimbutas"`: Xiao-Gimbutas simplex rule from ModePy, mapped to
+  the reference triangle and pulled back through square-squeezing.
+- `"ModePy_GrundmannMoeller"`: Grundmann-Moeller simplex rule from ModePy,
+  mapped to the reference triangle and pulled back through square-squeezing.
 
 ## Testing
 

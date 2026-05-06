@@ -2,12 +2,12 @@
 Surface Area Computation Benchmark for Sphere
 =============================================
 
-Area of the Sphere with Pull-back Gauss Quadrature on Simplex
---------------------------------------------------------------
+Area of the Sphere with the Default Vioreanu--Rokhlin Simplex Rule
+-------------------------------------------------------------------
 
-This benchmark focuses on the computational task of computing surface areas for the standard sphere :math:`S^2`. We utilize the `distmesh` library to generate Delaunay triangulations with :math:`N_{\Delta}=1652` triangles for the sphere. ``surfgeopy`` offers two options for computing surface integrals:
+This benchmark focuses on the computational task of computing surface areas for the standard sphere :math:`S^2`. We utilize the `distmesh` library to generate Delaunay triangulations with :math:`N_{\Delta}=1652` triangles for the sphere. ``surfgeopy`` offers several options for computing surface integrals:
 
-1. Pull-back Gauss Quadrature on Simplex (Default Option) with quadrature degree :math:`14`.
+1. The default ``ModePy_VioreanuRokhlin`` simplex rule with quadrature degree :math:`14`.
 
 .. code-block:: python
 
@@ -40,7 +40,7 @@ If the user would like to keep the default quadrature scheme but change the quad
 
 2. Gauss-Legendre Rule
 
-If the user prefers to keep the default ``Gauss-Legendre`` scheme with a specific quadrature degree, use:
+If the user prefers a tensor-product ``Gauss_Legendre`` rule on the square with a specific quadrature degree, use:
 
 .. code-block:: python
 

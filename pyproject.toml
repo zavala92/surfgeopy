@@ -10,7 +10,7 @@ authors = [
 ]
 description = "High-order volume elements (HOVE) designed for the integration of scalar functions over regular embedded manifolds."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 1 - Planning",

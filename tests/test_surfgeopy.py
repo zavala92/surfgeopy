@@ -3,11 +3,16 @@ import pytest
 from pathlib import Path
 from surfgeopy import (
     DiagnosticIntegrationResult,
+    DEFAULT_QUADRATURE_RULE,
     ImplicitSurface,
     IndicatorRefinementResult,
     IntegrationConfig,
     IntegrationResult,
     LevelSetSurface,
+    MODEPY_GRUNDMANN_MOELLER,
+    MODEPY_SIMPLEX_RULES,
+    MODEPY_VIOREANU_ROKHLIN,
+    MODEPY_XIAO_GIMBUTAS,
     ProjectionResult,
     ReferenceQuadrature,
     SurfaceGeometryResult,
@@ -119,6 +124,35 @@ class TestSurfgeopyFunctions:
         assert quadrature.size == 6
         assert quadrature.evaluation_points.shape == (6, 2)
         assert quadrature.weight_scale(0) > 0
+
+    def test_default_quadrature_rule_is_vioreanu_rokhlin(self):
+        config = IntegrationConfig(interpolation_degree=4)
+        quadrature = make_reference_quadrature(4)
+
+        assert DEFAULT_QUADRATURE_RULE == MODEPY_VIOREANU_ROKHLIN
+        assert config.quadrature_rule == MODEPY_VIOREANU_ROKHLIN
+        assert quadrature.rule == MODEPY_VIOREANU_ROKHLIN
+
+    @pytest.mark.parametrize("rule", MODEPY_SIMPLEX_RULES)
+    def test_modepy_simplex_reference_quadrature_factory(self, rule):
+        quadrature = make_reference_quadrature(4, rule)
+
+        assert isinstance(quadrature, ReferenceQuadrature)
+        assert quadrature.reference_points.shape[1] == 2
+        assert quadrature.evaluation_points.shape == quadrature.reference_points.shape
+        np.testing.assert_allclose(np.sum(quadrature.weights), 0.5)
+        assert np.all(quadrature.reference_points >= -1.0e-14)
+        assert np.all(np.sum(quadrature.reference_points, axis=1) <= 1.0 + 1.0e-14)
+        assert quadrature.weight_scale(0) > 0
+
+    def test_modepy_quadrature_constants_are_public(self):
+        assert MODEPY_XIAO_GIMBUTAS in MODEPY_SIMPLEX_RULES
+        assert MODEPY_GRUNDMANN_MOELLER in MODEPY_SIMPLEX_RULES
+        assert MODEPY_VIOREANU_ROKHLIN in MODEPY_SIMPLEX_RULES
+
+    def test_vioreanu_rokhlin_unavailable_degree_suggests_xiao_gimbutas(self):
+        with pytest.raises(ValueError, match="ModePy_XiaoGimbutas"):
+            make_reference_quadrature(21, MODEPY_VIOREANU_ROKHLIN)
 
     def test_surface_mesh_from_mat(self):
         mesh = SurfaceMesh.from_mat(str(MESH_PATH))
@@ -320,7 +354,7 @@ class TestSurfgeopyFunctions:
         pnts_p = SimpleImplicitSurfaceProjection(zero_levelset_function, gradient_function, x0)
         assert np.abs(zero_levelset_function(pnts_p) < 1e-16)
 
-    def test_integration_pull_back_gauss(self):
+    def test_legacy_integration_uses_default_vioreanu_rokhlin(self):
         zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
         gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
         mesh_path = str(MESH_PATH)
