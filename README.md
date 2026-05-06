@@ -4,7 +4,8 @@
 [![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg?style=flat-square)](https://www.python.org/downloads/release/python-380/)
 
 ![](./images/surfgeopy_logo.png)
-`surfgeopy` is a Python package that is freely available and open-source. Its purpose is to calculate approximations of surface integrals over smooth embedded manifolds.
+`surfgeopy` is a freely available, open-source Python package for approximating
+surface integrals over smooth embedded manifolds.
 
 `surfgeopy` is designed for high-order integration on smooth embedded surfaces
 when an implicit representation is available. Its core idea is to **pull back
@@ -25,14 +26,14 @@ integrals with high-order quadrature.
 - Useful for surface PDEs, geometry processing, curvature integrals, and
   validation problems such as sphere/torus area and Gauss-Bonnet checks.
 
-## 🎉Table of Contents
+## Table of Contents
 
 - [Background](#background)
 - [Why surfgeopy?](#why-surfgeopy)
 - [Quickstart](#quickstart)
 - [Install](#install)
 - [Usage](#usage)
-- [Development team](#develpment-team)
+- [Development team](#development-team)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -53,42 +54,49 @@ phenomenon, a common issue in polynomial interpolation on poorly chosen nodes.
 
 
 
-## Surface approximation using polynomial interpolation!
+## Surface Approximation Using Polynomial Interpolation
 
 <img src="images/approximation_frame.jpg" alt="drawing" width="4000"/>
 
-Consider an element $T_{i}$ in a reference surface $T$. We consider the affine transformation and closest point projection:
+Consider an element $T_i$ in a reference surface triangulation $T$. The method
+combines an affine triangle map with a closest-point projection:
 
 - $\tau_i : \Delta_2 \rightarrow T_i$
 - $\pi_i : T_i \rightarrow S_i$
 
-Setting
+The surface patch is represented by the composed map
 
 - $\varphi_i : \square_2 \rightarrow S_i, \quad \varphi_i = \pi_i \circ \tau_i\circ \sigma$
 where $\sigma$ is the square-squeezing map from the reference square
 $\square_2$ to the reference triangle $\Delta_2$. This composition pulls the
-surface interpolation task back to $\square_2$.
+surface interpolation task from the curved triangle back to the tensor-product
+domain $\square_2$.
 
-- We compute  $Q_{G_{2,k}} \varphi_i$ be the vector-valued tensor-polynomial interpolant of $\varphi_i$ in the Chebyshev--Lobbatto grid
+On this square, `surfgeopy` computes the vector-valued tensor-polynomial
+interpolant $Q_{G_{2,k}}\varphi_i$ on a Chebyshev--Lobatto grid.
 
 - $Q_{G_{2,k}} \varphi_i = \sum_{\alpha \in A_{2,k}} \varphi_i(p_\alpha)L_{\alpha} = \sum_{\alpha \in A_{2,k}}b_\alpha N_{\alpha}$
-  where the coefficients $b_\alpha \in \mathbf{R}$ of the Newton interpolation can be computed in closed form.
+  where the coefficients $b_\alpha \in \mathbf{R}$ of the Newton interpolation
+  can be computed in closed form.
 
-Substituting the surface geometry $\varphi_i$ with Chebyshev–Lobatto interpolants $Q_{G_{2,k}} \varphi_i$, yields a closed-form expression for the integral. This expression can be accurately computed using high-order quadrature rules.
+Substituting the surface geometry $\varphi_i$ with the Chebyshev--Lobatto
+interpolant $Q_{G_{2,k}}\varphi_i$ yields a closed-form expression for the
+geometric contribution to the integral. This expression is then evaluated using
+high-order quadrature:
 
- $\int_S fdS \approx\sum_{i=1,...,K} \int_{\square_2} (f\circ\varphi_i)(\mathrm{x}) \sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{x}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{x}))} d\mathrm{x}\approx \sum_{i=1,...,K} \sum_{\mathrm{p} \in P}\omega_{\mathrm{p}} (f \circ\varphi_i)(\mathrm{p})\sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{p}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{p}))}.$
+ $\int_S f\,dS \approx\sum_{i=1,...,K} \int_{\square_2} (f\circ\varphi_i)(\mathrm{x}) \sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{x}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{x}))} d\mathrm{x}\approx \sum_{i=1,...,K} \sum_{\mathrm{p} \in P}\omega_{\mathrm{p}} (f \circ\varphi_i)(\mathrm{p})\sqrt{\det((DQ_{G_{2,k}}\varphi_i(\mathrm{p}))^T DQ_{G_{2,k}}\varphi_i(\mathrm{p}))}.$
 
 
 
-## Square-triangle transformation
+## Square-Triangle Transformation
 
-- Square-triangle transformations: Deformations of an equidistant grid (left picture) under Duffy's transformation (middle picture) and square-squeezing (right picture)
+Square-triangle transformations are illustrated below by deforming an
+equidistant grid. The left picture shows the original grid, the middle picture
+shows Duffy's transformation, and the right picture shows square-squeezing.
 
 <img src="images/ss_map.png" alt="drawing" width="4000"/>
 
- <h2 align="center">
-💝 Results ! 💝
-</h2>                      
+## Results
 
 <div style="white-space: nowrap;">
     <img src="images/bionc_pict.png" alt="drawing" width="250" style="display:inline-block;"/>
@@ -105,9 +113,11 @@ Substituting the surface geometry $\varphi_i$ with Chebyshev–Lobatto interpola
 
 
 
-## Refinement  
+## Refinement
 
-As a refinement procedure, we use the so called triangular quadrisection when the initial triangle is replaced with four triangles until a certain tol is reached. Triangular quadrisection is a linear subdivision procedure which inserts new vertices at the edge midpoints of the input mesh,  thereby producing four new faces for every face of the original mesh:
+As a refinement procedure, `surfgeopy` uses triangular quadrisection. Each
+triangle is replaced by four subtriangles by inserting new vertices at the edge
+midpoints of the input mesh:
  
                       x3                        x3
                      /  \      subdivision     /  \
@@ -127,24 +137,26 @@ As a refinement procedure, we use the so called triangular quadrisection when th
 
 
 
-## 🎉 Roadmap
+## Roadmap
 
- We are currently working on:
+We are currently working on:
 
-- Incorporating distmesh for generating mesh in python 
-- Extending HOSQ  for a wide range of non-parametrized surfaces 
+- Incorporating `distmesh` for mesh generation in Python.
+- Extending high-order square quadrature to a wider range of non-parametrized
+  surfaces.
 
-More Coming soon...
+More coming soon.
 
-### 🛠️ Install
+## Install
 
-Since this implementation is a prototype, we currently only provide the installation by self-building from source. We recommend to using `git` to get the `surfgeopy` source:
+We recommend using `git` to obtain the `surfgeopy` source:
 
 ```bash
 git clone https://codebase.helmholtz.cloud/interpol/surfgeopy.git
 ```
 
-> 🚧 Switch to the `conda` or `venv` virtual environment of your choice where you would like to install the library.
+Switch to the `conda` or `venv` virtual environment of your choice before
+installing the library.
 
 From within the environment, install using [pip],
 
@@ -244,12 +256,12 @@ and by the Saxony Ministry for Science, Culture and Tourism (SMWK)
 with tax funds on the basis of the budget approved by the Saxony State Parliament.
 
 
-## 👷 Development team
+## Development Team
 
-### Main code development
+### Main Code Development
 - Gentian Zavalani (HZDR/CASUS) <gentian.zavalani@tu-dresden.de>
 
-### Mathematical foundation
+### Mathematical Foundation
 - Gentian Zavalani (HZDR/CASUS) <gentian.zavalani@tu-dresden.de>
 - Oliver Sander (TU Dresden) <oliver.sander@tu-dresden.de>
 - Michael Hecht (HZDR/CASUS) <m.hecht@hzdr.de>

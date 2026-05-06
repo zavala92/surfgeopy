@@ -1,10 +1,11 @@
 surfgeopy Documentation
 =======================
 
-``surfgeopy`` is a Python package for high-order integration on smooth embedded
-surfaces with an implicit representation. It starts from a triangulated
-reference mesh, projects interpolation nodes to a level set, builds curved
-surface patches, and evaluates surface integrals with high-order quadrature.
+``surfgeopy`` is a Python package for high-order numerical integration on
+smooth embedded surfaces with an implicit representation. Starting from a
+linear triangulated reference mesh, it constructs high-order curved surface
+patches by interpolating the closest-point projection and evaluates surface
+integrals with high-order quadrature.
 
 Start Here
 ----------
@@ -17,18 +18,33 @@ New users should begin with :doc:`install`, :doc:`quickstart`, and
 Introduction
 ------------
 
-``surfgeopy`` is an open-source Python package designed for approximating surface integrals over smooth embedded manifolds . It employs curved surface triangulations through k-th order interpolation of the closest point projection. This extends initial linear surface approximations.
+``surfgeopy`` is an open-source Python package for approximating surface
+integrals over smooth embedded manifolds. The method is based on curved surface
+triangulations obtained from :math:`k`-th order interpolation of the
+closest-point projection. In this way, an initial piecewise-linear surface
+approximation is lifted to a high-order approximation of the target surface.
 
 Square-Squeezing Technique
 --------------------------
 
-The key innovation in ``surfgeopy`` lies in the parametrization of triangles :math:`T_i` over squares using a square-squeezing technique. This transformative approach reconfigures interpolation tasks of triangulated manifolds to the standard hypercube through a recently introduced cube-to-simplex transformation. This innovative process enhances the accuracy of surface approximations, making ``surfgeopy`` a powerful tool for high-fidelity calculations.
+The central idea in ``surfgeopy`` is to pull the interpolation problem on each
+surface triangle back to a square. This is achieved with the square-squeezing
+map, a cube-to-simplex transformation that maps the reference square
+:math:`\square_2` to the reference triangle :math:`\Delta_2`.
+
+This reparametrization is important because the interpolation task is no longer
+performed directly on a triangle. Instead, the composed geometry map is
+interpolated on the standard tensor-product domain :math:`\square_2`, where
+stable high-order interpolation nodes are readily available.
 
 
 Chebyshev-Lobatto Grids
 -----------------------
 
-To guarantee stability and accuracy in computations, ``surfgeopy`` leverages classic Chebyshev-Lobatto grids. These grids enable the calculation of high-order interpolants for surface geometry while avoiding Runge's phenomenon, a common issue in numerical analysis.
+To support stable high-order interpolation, ``surfgeopy`` uses classical
+Chebyshev--Lobatto grids on the square. These grids allow the package to build
+accurate high-order interpolants for the surface geometry while avoiding the
+Runge phenomenon associated with poorly chosen interpolation nodes.
 
 .. figure:: images/leb_const.png
    :width: 100%
@@ -42,33 +58,62 @@ To guarantee stability and accuracy in computations, ``surfgeopy`` leverages cla
    Fekete points, and Chebyshev--Lobatto nodes (b) a visualization of Chebyshev--Lobatto nodes and
    (c) Fekete points for :math:`n=8`.
    
-The Lebesgue constant of uniform triangle-grid interpolation tends to rise quickly with increasing polynomial degree. The Lebesgue constant for Chebyshev--Lobatto interpolation increases much slower, while the Lebesgue constant for Fekete points is only marginally worse. 
+The Lebesgue constant of uniform triangle-grid interpolation tends to grow
+rapidly with the polynomial degree. By contrast, the Lebesgue constant for
+Chebyshev--Lobatto interpolation grows much more slowly, while the Lebesgue
+constant for Fekete points is only marginally worse.
 
-Fekete points are only known up to degree :math:`18` in the case of total :math:`l_1`-degree interpolation and not for the tensorial :math:`l_\infty`-degree.
+Fekete points are only known up to degree :math:`18` for total
+:math:`l_1`-degree interpolation, and not for tensorial
+:math:`l_\infty`-degree interpolation.
 
 
 
 
 
-Surface Approximation Using Polynomial Interpolation
------------------------------------------------------
+Surface Approximation by Polynomial Interpolation
+-------------------------------------------------
 
 .. figure:: images/approximation_frame.jpg
    :alt: Surface Approximation
    :width: 4000
 
-Consider an element :math:`T_i` on a reference surface :math:`T`. The core functionality of our ``surfgeopy`` revolves around:
+Consider an element :math:`T_i` of the reference triangulation :math:`T`.
+``surfgeopy`` constructs a high-order approximation of the corresponding
+surface patch by composing the affine triangle map, the square-squeezing map,
+and the closest-point projection.
 
-- Define :math:`\tau_i : \Delta_2 \rightarrow T_i` and :math:`\pi_i : T_i \rightarrow S_i`.
-- Set :math:`\varphi_i : \square_2 \rightarrow S_i` as :math:`\varphi_i = \pi_i \circ \tau_i \circ \sigma` where :math:`\sigma` is a mapping from the reference square :math:`\square_2` to the reference triangle :math:`\Delta_2` (Figure 2).
+- Define :math:`\tau_i : \Delta_2 \rightarrow T_i` as the affine map from
+  the reference triangle to the mesh element, and
+  :math:`\pi_i : T_i \rightarrow S_i` as the closest-point projection onto
+  the smooth surface patch.
+- Set :math:`\varphi_i : \square_2 \rightarrow S_i` by
 
-- Compute :math:`Q_{G_{2,k}} \varphi_i` as the vector-valued tensor-polynomial interpolant of :math:`\varphi_i` on the Chebyshev–Lobbatto grid.
+  .. math::
 
-- :math:`Q_{G_{2,k}} \varphi_i=\sum_{\alpha \in A_{2,k}} b_\alpha N_{\alpha}` where the coefficients :math:`b_\alpha \in R` of the Newton interpolation can be computed in closed form.
+     \varphi_i = \pi_i \circ \tau_i \circ \sigma,
 
-By substituting the surface geometry :math:`\varphi_i` with Chebyshev–Lobatto interpolants :math:`Q_{G_{2,k}} \varphi_i`, a closed-form expression for the integral is obtained. This expression can be accurately computed using high-order quadrature rules.
+  where :math:`\sigma : \square_2 \rightarrow \Delta_2` is the
+  square-squeezing map shown in Figure 2. This composition is the key pullback:
+  the interpolation task for a curved triangle is transferred to the square.
+- Compute :math:`Q_{G_{2,k}} \varphi_i`, the vector-valued tensor-polynomial
+  interpolant of :math:`\varphi_i` on the Chebyshev--Lobatto grid.
+- Write the interpolant as
 
-The integral :math:`\int_S fdS` is approximated as follows:
+  .. math::
+
+     Q_{G_{2,k}} \varphi_i
+     = \sum_{\alpha \in A_{2,k}} b_\alpha N_{\alpha},
+
+  where the coefficients :math:`b_\alpha \in \mathbb{R}` of the Newton
+  interpolation can be computed in closed form.
+
+Substituting the exact surface geometry :math:`\varphi_i` with its
+Chebyshev--Lobatto interpolant :math:`Q_{G_{2,k}} \varphi_i` yields a
+closed-form approximation of the geometric contribution to the integral. This
+expression is then evaluated accurately with high-order quadrature rules.
+
+The integral :math:`\int_S f\,dS` is approximated as follows:
 
 .. math::
    \sum_{i=1}^K \int_{\square_2} (f \circ \varphi_i)(\mathrm{x}) \sqrt{\det((DQ_{G_{2,k}} \varphi_i(\mathrm{x}))^T DQ_{G_{2,k}} \varphi_i(\mathrm{x}))} d\mathrm{x} 
@@ -76,19 +121,24 @@ The integral :math:`\int_S fdS` is approximated as follows:
    \approx \sum_{i=1}^K \sum_{\mathrm{p} \in P} \omega_{\mathrm{p}} (f \circ \varphi_i)(\mathrm{p}) \sqrt{\det((DQ_{G_{2,k}} \varphi_i(\mathrm{p}))^T DQ_{G_{2,k}} \varphi_i(\mathrm{p}))}.
    
  
-Then, the approximated integral can now be computed using a quadrature rule. There are two basic options: 
-Either use a quadrature rule for the square domain :math:`\square_2` directly (tensorial Gauss--Legendre rules),
-or use a simplex rule (symmetric Gauss quadrature rule) and pull it back to :math:`\square_2` by the
-inverse of the square-squeezing map :math:`\sigma` effectively integrating over the original triangulation
-:math:`T_i` of :math:`T`
+The resulting integral can be evaluated in two equivalent ways. One may use a
+quadrature rule directly on the square :math:`\square_2`, such as a tensorial
+Gauss--Legendre rule. Alternatively, one may use a simplex quadrature rule, for
+example a symmetric Gauss rule on :math:`\Delta_2`, and pull it back to
+:math:`\square_2` through the inverse of the square-squeezing map
+:math:`\sigma`. This second option keeps the quadrature naturally tied to the
+original triangulation :math:`T_i` of :math:`T`.
 
 
 
 
-Square-Triangle Transformation
-===============================
+Square--Triangle Transformation
+-------------------------------
 
-Square-triangle transformations: Deformations of an equidistant grid (left picture) under Duffy's transformation (middle picture) and square-squeezing (right picture)
+The figure below compares square--triangle transformations by showing the
+deformation of an equidistant grid. The left panel shows the original grid, the
+middle panel shows the Duffy transformation, and the right panel shows
+square-squeezing.
 
 
 .. figure:: images/ss_map.png
@@ -102,9 +152,10 @@ Square-triangle transformations: Deformations of an equidistant grid (left pictu
 
 .. admonition:: Figure 2
 
-   Bilinear square--simplex transformations: Deformations of equidistant grids,  under Duffy's transformation (b) and square-squeezing  (c).
+   Bilinear square--simplex transformations: deformation of an equidistant
+   grid under Duffy's transformation (b) and square-squeezing (c).
    
-For details on High-order integration on regular triangulated manifolds through cubical re-parameterizations at the heart of
+For the mathematical details behind the cubical reparametrization used in
 ``surfgeopy``, please consult:
 
    G. Zavalani, O. Sander and M. Hecht: High-order integration on regular triangulated manifolds reaches super-algebraic approximation rates through cubical re-parameterizations `[arXiv] <https://arxiv.org/abs/2311.13909>`_
