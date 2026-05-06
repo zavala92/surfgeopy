@@ -55,12 +55,3 @@ tree are reflected when importing ``surfgeopy`` from the same environment.
 .. warning::
 
     Avoid using the command ``python setup.py install`` to install ``surfgeopy``. This method is discouraged, as the presence of the ``setup.py`` file cannot be guaranteed in the ongoing development of the ``surfgeopy`` library.
-
-Generate Gallery Assets
------------------------
-
-To regenerate the first gallery figure and CSV table:
-
-.. code-block:: bash
-
-    python examples/gallery/sphere_area_convergence.py

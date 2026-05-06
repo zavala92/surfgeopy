@@ -12,8 +12,7 @@ Start Here
 
 New users should begin with :doc:`install`, :doc:`quickstart`, and
 :doc:`api_guide`. For numerical options, see :doc:`quadrature` and
-:doc:`diagnostics`. For visual examples, see :doc:`gallery` and
-:doc:`examples`.
+:doc:`diagnostics`. For benchmark examples, see :doc:`examples`.
 
 Introduction
 ------------
@@ -179,7 +178,6 @@ For the mathematical details behind the cubical reparametrization used in
    :caption: Examples
 
    examples
-   gallery
 
 .. toctree::
    :maxdepth: 2
