@@ -10,10 +10,10 @@ This installation guide is focused on development.
 For installing `surfgeopy` in production runs check out the [README.md](./README.md).
 
 In order to get the source of latest release,
-clone the `surfgeopy` repository from the [HZDR GitLab]:
+clone the `surfgeopy` repository from GitHub:
 
 ```bash
-git clone https://gitlab.hzdr.de/interpol/surfgeopy.git
+git clone https://github.com/zavala92/surfgeopy.git
 ```
 
 By default, the cloned branch is the `main` branch.
@@ -340,8 +340,7 @@ The following hooks are defined:
 ### Version control
 
 We only use [git](https://git-scm.com/) to version control `surfgeopy`.
-The main repository for development is place on [HZDR GitLab](https://gitlab.hzdr.de/interpol/surfgeopy).
-Moreover, the releases and the development branch are also mirrored into the [CASUS GitHub](https://github.com/casus/) repository.
+The main repository for development is hosted on [GitHub](https://github.com/zavala92/surfgeopy).
 
 We are currently considering to upload the builds of `surfgeopy` to [PyPI](https://pypi.org) and [conda-forge](https://conda-forge.org)
 to make the code more accessible.
@@ -379,7 +378,8 @@ of [Gitflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow
 
 We manage the bug fixes on every branch separately with the relevant developers, usually via `hotfix` branches to implement the patches.
 
-In the future, we may set up a continuous integration and development (CI/CD) on [HZDR GitLab](https://gitlab.hzdr.de/interpol/surfgeopy).
+In the future, we may set up additional continuous integration and deployment
+workflows on GitHub.
 
 ## Project Organization
 

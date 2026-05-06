@@ -158,7 +158,10 @@ square-squeezing.
 For the mathematical details behind the cubical reparametrization used in
 ``surfgeopy``, please consult:
 
-   G. Zavalani, O. Sander and M. Hecht: High-order integration on regular triangulated manifolds reaches super-algebraic approximation rates through cubical re-parameterizations `[arXiv] <https://arxiv.org/abs/2311.13909>`_
+   G. Zavalani, O. Sander and M. Hecht: High-Order Integration on Regular
+   Triangulated Manifolds Reaches Superalgebraic Approximation Rates Through
+   Cubical Reparametrizations. SIAM Journal on Numerical Analysis, 63(6),
+   2454--2482, 2025.
 
 .. toctree::
    :maxdepth: 2

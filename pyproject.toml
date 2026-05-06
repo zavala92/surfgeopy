@@ -20,8 +20,8 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://codebase.helmholtz.cloud/interpol/surfgeopy"
-"Bug Tracker" = "https://codebase.helmholtz.cloud/interpol/surfgeopy/issues"
+"Homepage" = "https://github.com/zavala92/surfgeopy"
+"Bug Tracker" = "https://github.com/zavala92/surfgeopy/issues"
 
 [tool.setuptools_scm]
 write_to = "surfgeopy/version.py"

@@ -152,7 +152,7 @@ More coming soon.
 We recommend using `git` to obtain the `surfgeopy` source:
 
 ```bash
-git clone https://codebase.helmholtz.cloud/interpol/surfgeopy.git
+git clone https://github.com/zavala92/surfgeopy.git
 ```
 
 Switch to the `conda` or `venv` virtual environment of your choice before
@@ -170,7 +170,7 @@ The `-e` argument specifies to install softlinks so that any changes made by the
 as you cannot always assume the files `setup.py` will always be present
 in the further development of `surfgeopy`.
 
-- If you would like to use `surfgeopy` in MATLAB, please refer to [this link](https://codebase.helmholtz.cloud/interpol/surfgeopy/-/blob/dev/README_MATLAB.md?ref_type=heads).
+- If you would like to use `surfgeopy` in MATLAB, please refer to [this link](https://github.com/zavala92/surfgeopy/blob/main/README_MATLAB.md).
 - Documentation: https://surfgeopy.readthedocs.io
 
 ## Quickstart
@@ -277,11 +277,15 @@ acknowledge its authors by adding a reference to the paper
 below.
 
 ```bibtex
-@article{...,
-  title={High-order integration on regular triangulated manifolds reaches super-algebraic approximation rates through cubical re-parameterizations},
-  author={Zavalani, G., Sander, O. and Hecht, M.},
-  journal={arXiv preprint arXiv:2311.13909},
-  year={2023}
+@article{zavalani2025high,
+  title={High-Order Integration on Regular Triangulated Manifolds Reaches Superalgebraic Approximation Rates Through Cubical Reparametrizations},
+  author={Zavalani, Gentian and Sander, Oliver and Hecht, Michael},
+  journal={SIAM Journal on Numerical Analysis},
+  volume={63},
+  number={6},
+  pages={2454--2482},
+  year={2025},
+  publisher={SIAM}
 }
 ```
 

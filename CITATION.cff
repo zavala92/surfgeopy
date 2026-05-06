@@ -9,10 +9,26 @@ authors:
   - family-names: Hecht
     given-names: Michael
 license: MIT
-repository-code: "https://codebase.helmholtz.cloud/interpol/surfgeopy"
+repository-code: "https://github.com/zavala92/surfgeopy"
 keywords:
   - surface integration
   - implicit surfaces
   - high-order quadrature
   - triangulated manifolds
-
+preferred-citation:
+  type: article
+  title: "High-Order Integration on Regular Triangulated Manifolds Reaches Superalgebraic Approximation Rates Through Cubical Reparametrizations"
+  authors:
+    - family-names: Zavalani
+      given-names: Gentian
+    - family-names: Sander
+      given-names: Oliver
+    - family-names: Hecht
+      given-names: Michael
+  journal: "SIAM Journal on Numerical Analysis"
+  volume: "63"
+  issue: "6"
+  start: 2454
+  end: 2482
+  year: 2025
+  publisher: "SIAM"

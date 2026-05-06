@@ -22,7 +22,7 @@ Use ``git`` to obtain the source code:
 
 .. code-block:: bash
 
-    git clone https://codebase.helmholtz.cloud/interpol/surfgeopy.git
+    git clone https://github.com/zavala92/surfgeopy.git
 
 Create and activate a virtual environment before installing the package:
 
