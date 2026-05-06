@@ -5,6 +5,7 @@ from surfgeopy import (
     AdaptiveIntegrationResult,
     DiagnosticIntegrationResult,
     ImplicitSurface,
+    IndicatorRefinementResult,
     IntegrationConfig,
     IntegrationResult,
     LevelSetSurface,
@@ -24,6 +25,7 @@ from surfgeopy import (
     quadrule_on_simplex,
     simplex_barycentric_coordinates,
     surface_geometry,
+    refine_by_indicator,
     subdivide,
     SimpleImplicitSurfaceProjection,
 )
@@ -244,6 +246,53 @@ class TestSurfgeopyFunctions:
             adaptive_integrate(surface, lambda _: 1.0, config, marking_fraction=0.0)
         with pytest.raises(ValueError, match="min_marked_faces"):
             adaptive_integrate(surface, lambda _: 1.0, config, min_marked_faces=0)
+
+    def test_refine_by_indicator_marks_large_face_center_values(self):
+        vertices = np.array([
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ])
+        faces = np.array([[0, 1, 2], [0, 2, 3]])
+        mesh = SurfaceMesh(vertices, faces)
+        surface = LevelSetSurface(mesh, lambda x: x[2], lambda _: np.array([0.0, 0.0, 1.0]))
+
+        refined = refine_by_indicator(
+            surface,
+            lambda x: x[0],
+            max_iterations=2,
+            threshold_fraction=0.5,
+            use_absolute=False,
+        )
+
+        assert isinstance(refined, IndicatorRefinementResult)
+        assert refined.n_iterations == 2
+        assert refined.history[0].n_faces == 2
+        assert refined.history[0].n_marked_faces == 1
+        np.testing.assert_array_equal(refined.history[0].marked_faces, np.array([0]))
+        assert refined.history[0].threshold == pytest.approx(1.0 / 3.0)
+        assert refined.n_faces == 5
+        assert "Final faces" in refined.summary()
+
+    def test_refine_by_indicator_validates_parameters(self):
+        vertices = np.array([
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ])
+        surface = LevelSetSurface(
+            SurfaceMesh(vertices, np.array([[0, 1, 2]])),
+            lambda x: x[2],
+            lambda _: np.array([0.0, 0.0, 1.0]),
+        )
+
+        with pytest.raises(ValueError, match="max_iterations"):
+            refine_by_indicator(surface, lambda _: 1.0, max_iterations=0)
+        with pytest.raises(ValueError, match="threshold_fraction"):
+            refine_by_indicator(surface, lambda _: 1.0, threshold_fraction=0.0)
+        with pytest.raises(ValueError, match="non-finite"):
+            refine_by_indicator(surface, lambda _: np.nan)
 
     def test_surface_geometry_api_on_sphere(self):
         zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1

@@ -23,10 +23,13 @@ __all__ = [
     "DiagnosticIntegrationResult",
     "AdaptiveIteration",
     "AdaptiveIntegrationResult",
+    "IndicatorRefinementIteration",
+    "IndicatorRefinementResult",
     "SurfaceGeometryResult",
     "integrate",
     "integrate_with_diagnostics",
     "adaptive_integrate",
+    "refine_by_indicator",
     "surface_geometry",
 ]
 
@@ -265,6 +268,53 @@ class AdaptiveIntegrationResult:
 
 
 @dataclass(frozen=True)
+class IndicatorRefinementIteration:
+    """One indicator-based reference-mesh refinement step."""
+
+    iteration: int
+    n_faces: int
+    n_marked_faces: int
+    max_indicator: float
+    threshold: float
+    marked_faces: np.ndarray
+
+
+@dataclass(frozen=True)
+class IndicatorRefinementResult:
+    """Result returned by :func:`refine_by_indicator`."""
+
+    final_surface: LevelSetSurface
+    history: tuple
+
+    @property
+    def n_iterations(self) -> int:
+        """Return the number of indicator refinement iterations."""
+        return len(self.history)
+
+    @property
+    def n_faces(self) -> int:
+        """Return the number of faces in the refined mesh."""
+        return self.final_surface.mesh.n_faces
+
+    def summary(self) -> str:
+        """Return a compact text report for the refinement run."""
+        lines = [
+            f"Iterations:            {self.n_iterations}",
+            f"Final faces:           {self.n_faces}",
+        ]
+        if self.history:
+            last = self.history[-1]
+            lines.extend(
+                [
+                    f"Last max indicator:    {last.max_indicator:.3e}",
+                    f"Last threshold:        {last.threshold:.3e}",
+                    f"Last marked faces:     {last.n_marked_faces}",
+                ]
+            )
+        return "\n".join(lines)
+
+
+@dataclass(frozen=True)
 class SurfaceGeometryResult:
     """Differential geometry samples on the interpolated curved surface."""
 
@@ -489,6 +539,85 @@ def _mark_largest_indicators(
     if n_marked <= 0:
         return np.array([], dtype=int)
     return np.argsort(indicators)[-n_marked:]
+
+
+def _face_centers(mesh: SurfaceMesh) -> np.ndarray:
+    if mesh.faces.shape[1] != 3:
+        raise ValueError("indicator refinement currently requires triangular faces")
+    return np.mean(mesh.vertices[mesh.faces], axis=1)
+
+
+def refine_by_indicator(
+    surface: LevelSetSurface,
+    indicator: Callable[[np.ndarray], float],
+    *,
+    max_iterations: int = 6,
+    threshold_fraction: float = 0.25,
+    use_absolute: bool = True,
+) -> IndicatorRefinementResult:
+    """Refine the reference mesh using an indicator evaluated at face centers.
+
+    This reproduces the common curved-grid workflow where the linear host mesh
+    is adapted first and a polynomial degree study is run afterwards on the
+    adapted mesh. At each iteration, the indicator is evaluated at the affine
+    center of every triangular face. Faces with indicator value larger than
+    ``threshold_fraction * max_indicator`` are subdivided.
+    """
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be at least 1")
+    if not (0.0 < threshold_fraction <= 1.0):
+        raise ValueError("threshold_fraction must be in the interval (0, 1]")
+
+    current_surface = surface
+    history = []
+
+    for iteration in range(max_iterations):
+        centers = _face_centers(current_surface.mesh)
+        indicator_values = np.asarray([indicator(center) for center in centers], dtype=float)
+        if use_absolute:
+            indicator_values = np.abs(indicator_values)
+        if not np.all(np.isfinite(indicator_values)):
+            raise ValueError("indicator returned non-finite values")
+
+        max_indicator = float(np.max(indicator_values)) if indicator_values.size else 0.0
+        threshold = threshold_fraction * max_indicator
+        if max_indicator == 0.0:
+            marked_faces = np.array([], dtype=int)
+        else:
+            marked_faces = np.flatnonzero(indicator_values > threshold)
+
+        history.append(
+            IndicatorRefinementIteration(
+                iteration=iteration,
+                n_faces=current_surface.mesh.n_faces,
+                n_marked_faces=int(marked_faces.size),
+                max_indicator=max_indicator,
+                threshold=float(threshold),
+                marked_faces=marked_faces,
+            )
+        )
+
+        if marked_faces.size == 0 or iteration == max_iterations - 1:
+            return IndicatorRefinementResult(
+                final_surface=current_surface,
+                history=tuple(history),
+            )
+
+        vertices, faces = subdivide(
+            current_surface.mesh.vertices,
+            current_surface.mesh.faces,
+            face_index=marked_faces,
+        )
+        current_surface = LevelSetSurface(
+            SurfaceMesh(vertices, faces),
+            current_surface.level_set,
+            current_surface.gradient,
+        )
+
+    return IndicatorRefinementResult(
+        final_surface=current_surface,
+        history=tuple(history),
+    )
 
 
 def adaptive_integrate(

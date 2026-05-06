@@ -29,6 +29,10 @@ The main user-facing classes are:
    tangents, normal, metric tensor, area density, second fundamental form, mean
    curvature, and Gaussian curvature.
 
+``IndicatorRefinementResult``
+   Stores the final surface and per-step history from indicator-based reference
+   mesh refinement.
+
 ``integrate``
    Runs the high-order implicit-surface integration workflow.
 
@@ -38,6 +42,11 @@ The main user-facing classes are:
 ``adaptive_integrate``
    Repeats diagnostic integration, refines faces with the largest local error
    indicators, and returns convergence history.
+
+``refine_by_indicator``
+   Refines the reference mesh using an indicator evaluated at affine face
+   centers. This is useful when the adapted mesh should be generated before a
+   separate polynomial degree study.
 
 ``surface_geometry``
    Evaluates Minterpy spectral derivatives of the high-order surface map and
@@ -103,6 +112,36 @@ Adaptive Example
 and refines them by triangular quadrisection. The result stores the final
 surface mesh and an iteration history with the number of faces, marked faces,
 and error estimate at each step.
+
+Indicator Refinement Example
+----------------------------
+
+.. code-block:: python
+
+   adapted = refine_by_indicator(
+       surface,
+       integrand,
+       max_iterations=6,
+       threshold_fraction=0.25,
+   )
+
+   adapted_surface = adapted.final_surface
+
+   errors = []
+   for degree in range(2, 22):
+       config = IntegrationConfig(
+           interpolation_degree=degree,
+           integration_degree=15,
+           quadrature_rule="Pull_back_Gauss",
+       )
+       result = integrate(adapted_surface, integrand, config)
+       errors.append(abs(result.total - exact_value) / abs(exact_value))
+
+``refine_by_indicator`` follows the host-grid adaptation pattern: it evaluates
+``abs(indicator(center))`` on each linear reference triangle, marks faces above
+``threshold_fraction * max_indicator``, and subdivides the marked faces. The
+high-order curved interpolation is then constructed on the adapted reference
+mesh during the subsequent integration run.
 
 Surface Geometry Example
 ------------------------

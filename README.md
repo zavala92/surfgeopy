@@ -281,6 +281,23 @@ adaptive = adaptive_integrate(
 print(adaptive.summary())
 ```
 
+For the host-mesh adaptation workflow used in degree studies, refine the
+reference mesh first using an indicator at face centers and then run the degree
+sweep on the adapted surface:
+
+```python
+from surfgeopy import refine_by_indicator
+
+adapted = refine_by_indicator(
+    surface,
+    integrand,
+    max_iterations=6,
+    threshold_fraction=0.25,
+)
+
+adapted_surface = adapted.final_surface
+```
+
 For differential geometry quantities, use the same configuration with
 `surface_geometry`. The routine evaluates the Minterpy surface interpolant built
 on the Chebyshev-Lobatto interpolation grid and uses Minterpy's polynomial

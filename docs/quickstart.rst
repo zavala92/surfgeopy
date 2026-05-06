@@ -135,6 +135,31 @@ If you do not know how much mesh refinement is needed, use
 The adaptive routine refines the faces with the largest local diagnostic
 indicators and stores a convergence history in ``adaptive.history``.
 
+Indicator-Based Mesh Adaptation
+-------------------------------
+
+For workflows where the mesh is adapted first and the polynomial degree is
+varied afterwards, use ``refine_by_indicator``:
+
+.. code-block:: python
+
+   from surfgeopy import refine_by_indicator
+
+   adapted = refine_by_indicator(
+       surface,
+       integrand,
+       max_iterations=6,
+       threshold_fraction=0.25,
+   )
+
+   adapted_surface = adapted.final_surface
+
+The indicator is evaluated at the affine center of each reference triangle.
+Faces with ``abs(indicator(center))`` above ``threshold_fraction`` times the
+maximum indicator are subdivided. This mirrors host-mesh adaptation workflows
+where the high-order curved patches are rebuilt only after the adapted
+reference mesh has been created.
+
 Legacy Function
 ---------------
 
