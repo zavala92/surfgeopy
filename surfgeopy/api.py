@@ -1,6 +1,6 @@
 """High-level API for integrating functions over implicit surfaces."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Callable, Optional
 
 import numpy as np
@@ -18,7 +18,9 @@ __all__ = [
     "LevelSetSurface",
     "IntegrationConfig",
     "IntegrationResult",
+    "DiagnosticIntegrationResult",
     "integrate",
+    "integrate_with_diagnostics",
 ]
 
 
@@ -112,6 +114,85 @@ class IntegrationResult:
         return self.total
 
 
+@dataclass(frozen=True)
+class DiagnosticIntegrationResult:
+    """Error-estimation data returned by :func:`integrate_with_diagnostics`.
+
+    The estimate is computed by comparing a base integration run with an
+    enriched run using higher interpolation and/or quadrature degree.
+    """
+
+    base_result: IntegrationResult
+    enriched_result: IntegrationResult
+    absolute_error_estimate: float
+    relative_error_estimate: float
+    local_absolute_errors: np.ndarray
+    recommended_config: IntegrationConfig
+    absolute_tolerance: Optional[float] = None
+    relative_tolerance: Optional[float] = 1.0e-8
+
+    @property
+    def total(self) -> float:
+        """Return the enriched integral value."""
+        return self.enriched_result.total
+
+    @property
+    def base_total(self) -> float:
+        """Return the integral value from the base configuration."""
+        return self.base_result.total
+
+    @property
+    def n_quadrature_points(self) -> int:
+        """Return the number of quadrature points in the enriched run."""
+        return self.enriched_result.n_quadrature_points
+
+    @property
+    def target_reached(self) -> Optional[bool]:
+        """Return whether the requested accuracy target was reached.
+
+        If no absolute or relative tolerance was supplied, ``None`` is returned.
+        """
+        checks = []
+        if self.absolute_tolerance is not None:
+            checks.append(self.absolute_error_estimate <= self.absolute_tolerance)
+        if self.relative_tolerance is not None:
+            checks.append(self.relative_error_estimate <= self.relative_tolerance)
+        if not checks:
+            return None
+        return all(checks)
+
+    @property
+    def max_local_error(self) -> float:
+        """Return the largest per-face difference between both runs."""
+        if self.local_absolute_errors.size == 0:
+            return 0.0
+        return float(np.max(self.local_absolute_errors))
+
+    def summary(self) -> str:
+        """Return a compact text report for notebooks and logs."""
+        status = self.target_reached
+        if status is None:
+            recommendation = "no tolerance requested"
+        elif status:
+            recommendation = "accuracy target reached"
+        else:
+            recommendation = "increase interpolation degree, quadrature degree, or refinement"
+
+        return "\n".join(
+            [
+                f"Integral:              {self.total:.16g}",
+                f"Base integral:         {self.base_total:.16g}",
+                f"Estimated abs. error:  {self.absolute_error_estimate:.3e}",
+                f"Estimated rel. error:  {self.relative_error_estimate:.3e}",
+                f"Max local error:       {self.max_local_error:.3e}",
+                f"Quadrature points:     {self.n_quadrature_points}",
+                f"Interpolation degree:  {self.enriched_result.config.interpolation_degree}",
+                f"Integration degree:    {self.enriched_result.config.integration_degree}",
+                f"Recommendation:        {recommendation}",
+            ]
+        )
+
+
 def integrate(
     surface: LevelSetSurface,
     integrand: Callable[[np.ndarray], float] = lambda _: 1.0,
@@ -150,3 +231,93 @@ def integrate(
     )
     values = accumulate_surface_integrals(points, weights, offsets, integrand)
     return IntegrationResult(values, points, weights, offsets, config)
+
+
+def integrate_with_diagnostics(
+    surface: LevelSetSurface,
+    integrand: Callable[[np.ndarray], float] = lambda _: 1.0,
+    config: Optional[IntegrationConfig] = None,
+    *,
+    interpolation_degree_step: int = 2,
+    integration_degree_step: int = 2,
+    absolute_tolerance: Optional[float] = None,
+    relative_tolerance: Optional[float] = 1.0e-8,
+) -> DiagnosticIntegrationResult:
+    """Integrate a scalar function and estimate numerical accuracy.
+
+    The function runs ``integrate`` twice: once with ``config`` and once with an
+    enriched configuration. The absolute difference between the two totals is
+    reported as an a posteriori error estimate.
+
+    Parameters
+    ----------
+    surface
+        Surface mesh plus implicit level-set representation.
+    integrand
+        Scalar function evaluated at physical quadrature points.
+    config
+        Base numerical configuration. If omitted, the same default as
+        :func:`integrate` is used.
+    interpolation_degree_step
+        Increase applied to the interpolation degree for the enriched run.
+    integration_degree_step
+        Increase applied to the quadrature degree for the enriched run.
+    absolute_tolerance
+        Optional absolute error target.
+    relative_tolerance
+        Optional relative error target. The default is ``1e-8``.
+
+    Returns
+    -------
+    DiagnosticIntegrationResult
+        Base and enriched results, error estimates, local per-face differences,
+        and a recommended next configuration.
+    """
+    if config is None:
+        config = IntegrationConfig(interpolation_degree=6)
+    if interpolation_degree_step < 0:
+        raise ValueError("interpolation_degree_step must be non-negative")
+    if integration_degree_step < 0:
+        raise ValueError("integration_degree_step must be non-negative")
+    if interpolation_degree_step == 0 and integration_degree_step == 0:
+        raise ValueError("at least one enrichment step must be positive")
+
+    base_result = integrate(surface, integrand, config)
+    enriched_config = replace(
+        config,
+        interpolation_degree=config.interpolation_degree + interpolation_degree_step,
+        integration_degree=config.integration_degree + integration_degree_step,
+    )
+    enriched_result = integrate(surface, integrand, enriched_config)
+
+    absolute_error_estimate = abs(enriched_result.total - base_result.total)
+    denominator = max(abs(enriched_result.total), np.finfo(float).tiny)
+    relative_error_estimate = absolute_error_estimate / denominator
+
+    if enriched_result.values.shape == base_result.values.shape:
+        local_absolute_errors = np.abs(enriched_result.values - base_result.values)
+    else:
+        local_absolute_errors = np.array([], dtype=float)
+
+    if (
+        (absolute_tolerance is None or absolute_error_estimate <= absolute_tolerance)
+        and (relative_tolerance is None or relative_error_estimate <= relative_tolerance)
+    ):
+        recommended_config = config
+    else:
+        recommended_config = replace(
+            enriched_config,
+            interpolation_degree=enriched_config.interpolation_degree + interpolation_degree_step,
+            integration_degree=enriched_config.integration_degree + integration_degree_step,
+        )
+
+    return DiagnosticIntegrationResult(
+        base_result=base_result,
+        enriched_result=enriched_result,
+        absolute_error_estimate=float(absolute_error_estimate),
+        relative_error_estimate=float(relative_error_estimate),
+        local_absolute_errors=local_absolute_errors,
+        recommended_config=recommended_config,
+        absolute_tolerance=absolute_tolerance,
+        relative_tolerance=relative_tolerance,
+    )

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 from surfgeopy import (
+    DiagnosticIntegrationResult,
     ImplicitSurface,
     IntegrationConfig,
     IntegrationResult,
@@ -12,6 +13,7 @@ from surfgeopy import (
     SurfaceMesh,
     affine_triangle_points,
     integrate,
+    integrate_with_diagnostics,
     integration,
     make_reference_quadrature,
     pullback,
@@ -136,6 +138,62 @@ class TestSurfgeopyFunctions:
         assert result.n_quadrature_points == result.points.shape[0]
         assert np.abs(4 * np.pi - result.total) < 1e-10
         assert float(result) == result.total
+
+    def test_integrate_with_diagnostics_api(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(
+            interpolation_degree=4,
+            refinement_level=0,
+            integration_degree=8,
+            quadrature_rule="Gauss_Legendre",
+        )
+
+        diagnostics = integrate_with_diagnostics(
+            surface,
+            lambda _: 1.0,
+            config,
+            interpolation_degree_step=2,
+            integration_degree_step=2,
+            relative_tolerance=1.0e-6,
+        )
+
+        assert isinstance(diagnostics, DiagnosticIntegrationResult)
+        assert isinstance(diagnostics.base_result, IntegrationResult)
+        assert isinstance(diagnostics.enriched_result, IntegrationResult)
+        assert diagnostics.enriched_result.config.interpolation_degree == 6
+        assert diagnostics.enriched_result.config.integration_degree == 10
+        assert diagnostics.total == diagnostics.enriched_result.total
+        assert diagnostics.n_quadrature_points == diagnostics.enriched_result.n_quadrature_points
+        assert diagnostics.absolute_error_estimate >= 0.0
+        assert diagnostics.relative_error_estimate >= 0.0
+        assert diagnostics.local_absolute_errors.shape == (mesh.n_faces,)
+        assert diagnostics.max_local_error >= 0.0
+        assert diagnostics.target_reached in {True, False}
+        assert "Estimated abs. error" in diagnostics.summary()
+        assert np.abs(4 * np.pi - diagnostics.total) < 1e-6
+
+    def test_integrate_with_diagnostics_validates_enrichment(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(interpolation_degree=4)
+
+        with pytest.raises(ValueError, match="interpolation_degree_step"):
+            integrate_with_diagnostics(surface, lambda _: 1.0, config, interpolation_degree_step=-1)
+        with pytest.raises(ValueError, match="integration_degree_step"):
+            integrate_with_diagnostics(surface, lambda _: 1.0, config, integration_degree_step=-1)
+        with pytest.raises(ValueError, match="at least one"):
+            integrate_with_diagnostics(
+                surface,
+                lambda _: 1.0,
+                config,
+                interpolation_degree_step=0,
+                integration_degree_step=0,
+            )
 
     def test_integration_config_validates_degrees(self):
         with pytest.raises(ValueError, match="interpolation_degree"):

@@ -20,8 +20,15 @@ The main user-facing classes are:
 ``IntegrationResult``
    Stores per-face values, quadrature points, weights, offsets, and the total.
 
+``DiagnosticIntegrationResult``
+   Stores two integration runs, an a posteriori error estimate, local per-face
+   differences, and a text summary.
+
 ``integrate``
    Runs the high-order implicit-surface integration workflow.
+
+``integrate_with_diagnostics``
+   Runs a base and enriched integration configuration to estimate accuracy.
 
 Example
 -------
@@ -37,6 +44,30 @@ Example
    )
 
    result = integrate(surface, integrand, config)
+
+Diagnostics Example
+-------------------
+
+.. code-block:: python
+
+   report = integrate_with_diagnostics(
+       surface,
+       integrand,
+       config,
+       interpolation_degree_step=2,
+       integration_degree_step=2,
+       relative_tolerance=1.0e-8,
+   )
+
+   print(report.total)
+   print(report.absolute_error_estimate)
+   print(report.relative_error_estimate)
+   print(report.summary())
+
+``report.total`` is the value from the enriched run. The error estimate is the
+difference between the enriched and base totals. If the requested tolerance is
+not reached, ``report.recommended_config`` proposes the next enriched
+configuration to try.
 
 Choosing Degrees
 ----------------
@@ -62,4 +93,3 @@ Validation
 
 ``IntegrationConfig`` validates that interpolation and integration degrees are
 positive and that refinement is non-negative.
-

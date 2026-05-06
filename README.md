@@ -23,6 +23,7 @@ integrals with high-order quadrature.
 - Explicit configuration of interpolation degree, quadrature degree, refinement,
   and quadrature rule.
 - Per-face integration values plus quadrature points and weights for diagnostics.
+- Built-in accuracy diagnostics by comparing a base run with an enriched run.
 - Useful for surface PDEs, geometry processing, curvature integrals, and
   validation problems such as sphere/torus area and Gauss-Bonnet checks.
 
@@ -240,6 +241,16 @@ config = IntegrationConfig(
 
 result = integrate(surface, lambda _: 1.0, config)
 print(result.total)
+```
+
+For an a posteriori accuracy estimate, compare the selected configuration with
+an enriched run:
+
+```python
+from surfgeopy import integrate_with_diagnostics
+
+report = integrate_with_diagnostics(surface, lambda _: 1.0, config)
+print(report.summary())
 ```
 
 ## Contributing to `surfgeopy`

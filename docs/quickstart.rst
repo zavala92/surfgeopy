@@ -71,6 +71,23 @@ Result Object
 ``total``
    The total integral over the surface.
 
+Estimate Accuracy
+-----------------
+
+For production runs, use ``integrate_with_diagnostics`` to compare the selected
+configuration with an enriched configuration:
+
+.. code-block:: python
+
+   from surfgeopy import integrate_with_diagnostics
+
+   report = integrate_with_diagnostics(surface, lambda _: 1.0, config)
+   print(report.summary())
+
+The reported value ``report.total`` is the enriched integral. The fields
+``absolute_error_estimate`` and ``relative_error_estimate`` measure the
+difference between the base and enriched runs.
+
 Legacy Function
 ---------------
 
@@ -78,4 +95,3 @@ The older ``integration(...)`` function is still available for notebooks and
 existing scripts. New code should prefer ``SurfaceMesh``, ``LevelSetSurface``,
 ``IntegrationConfig``, and ``integrate`` because these make the numerical setup
 explicit and return diagnostic data.
-
