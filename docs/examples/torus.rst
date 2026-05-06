@@ -23,7 +23,20 @@ Local imports
 
 .. code-block:: python
 
-    import surfgeopy as sp
+    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+    
+    def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                          integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+        mesh = SurfaceMesh.from_mat(mesh_path)
+        surface = LevelSetSurface(mesh, phi, dphi)
+        config = IntegrationConfig(
+            interpolation_degree=int(intp_degree),
+            lp_degree=lp_degree,
+            refinement_level=int(refinement),
+            integration_degree=int(deg_integration),
+            quadrature_rule=quadrature_rule,
+        )
+        return integrate(surface, integrand, config).values
 
 In this experiment, we start with a coarse mesh and iteratively refine it twice for enhanced accuracy.
 
@@ -51,7 +64,7 @@ Error Evaluation Function
     def err_t(intp_degree,lp_degree,mesh_path, refinement):
         f1=lambda _: 1
         t0 = time()
-        areas = sp.integration(phi,dphi, mesh_path,intp_degree,lp_degree,refinement, f1)
+        areas = integrate_surface(phi,dphi, mesh_path,intp_degree,lp_degree,refinement, f1)
         t1 = time()
         sum_area =sum(areas)
         t1 = time()

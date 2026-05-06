@@ -40,7 +40,20 @@ Imports
    from time import time
    
    # Local imports
-   import surfgeopy as sp
+   from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+   
+   def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                         integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+       mesh = SurfaceMesh.from_mat(mesh_path)
+       surface = LevelSetSurface(mesh, phi, dphi)
+       config = IntegrationConfig(
+           interpolation_degree=int(intp_degree),
+           lp_degree=lp_degree,
+           refinement_level=int(refinement),
+           integration_degree=int(deg_integration),
+           quadrature_rule=quadrature_rule,
+       )
+       return integrate(surface, integrand, config).values
 
 
 .. code-block:: python
@@ -72,7 +85,7 @@ Error Evaluation Function
 
    def err_g(intp_degree, lp_degree, mesh_path, refinement):
        t0 = time()
-       areas = sp.integration(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
+       areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
        t1 = time()
        sum_area = sum(areas)
        t1 = time()
@@ -139,7 +152,20 @@ Imports
     from time import time
 
     # Local imports
-    import surfgeopy as sp
+    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+    
+    def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                          integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+        mesh = SurfaceMesh.from_mat(mesh_path)
+        surface = LevelSetSurface(mesh, phi, dphi)
+        config = IntegrationConfig(
+            interpolation_degree=int(intp_degree),
+            lp_degree=lp_degree,
+            refinement_level=int(refinement),
+            integration_degree=int(deg_integration),
+            quadrature_rule=quadrature_rule,
+        )
+        return integrate(surface, integrand, config).values
 
     mesh_path = "../meshes/genus_two_N=15632.mat"
 
@@ -168,7 +194,7 @@ Error Evaluation Function
     
     def err_g(intp_degree, lp_degree, mesh_path, refinement):
         t0 = time()
-        areas = sp.integration(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
+        areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
         t1 = time()
         sum_area = sum(areas)
         t1 = time()
@@ -233,7 +259,20 @@ Imports
    from time import time
 
    # Local imports
-   import surfgeopy as sp
+   from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+   
+   def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                         integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+       mesh = SurfaceMesh.from_mat(mesh_path)
+       surface = LevelSetSurface(mesh, phi, dphi)
+       config = IntegrationConfig(
+           interpolation_degree=int(intp_degree),
+           lp_degree=lp_degree,
+           refinement_level=int(refinement),
+           integration_degree=int(deg_integration),
+           quadrature_rule=quadrature_rule,
+       )
+       return integrate(surface, integrand, config).values
 
    mesh_path ="../meshes/ellipsoid_N=4024_a=0.6_b=0.8_c=2.mat"
    a=0.6
@@ -256,7 +295,7 @@ Error Evaluation Function
 
    def err_g(intp_degree, lp_degree, mesh_path, refinement):
        t0 = time()
-       areas = sp.integration(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
+       areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
        t1 = time()
        sum_area = sum(areas)
        t1 = time()
@@ -329,7 +368,20 @@ Imports
     from time import time
 
     # Local imports
-    import surfgeopy as sp
+    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+    
+    def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                          integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+        mesh = SurfaceMesh.from_mat(mesh_path)
+        surface = LevelSetSurface(mesh, phi, dphi)
+        config = IntegrationConfig(
+            interpolation_degree=int(intp_degree),
+            lp_degree=lp_degree,
+            refinement_level=int(refinement),
+            integration_degree=int(deg_integration),
+            quadrature_rule=quadrature_rule,
+        )
+        return integrate(surface, integrand, config).values
 
     mesh_path = "../meshes/dziukmesh_N=8088.mat"
 
@@ -349,7 +401,7 @@ Error Evaluation Function
 
     def err_g(intp_degree, lp_degree, mesh_path, refinement):
         t0 = time()
-        areas = sp.integration(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
+        areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
         t1 = time()
         sum_area = sum(areas)
         t1 = time()
@@ -423,7 +475,20 @@ The Euler Characteristic is :math:`\chi(\mathcal{M})=2`, therefore we have:
     from time import time
 
     # Local imports
-    import surfgeopy as sp
+    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+    
+    def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
+                          integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
+        mesh = SurfaceMesh.from_mat(mesh_path)
+        surface = LevelSetSurface(mesh, phi, dphi)
+        config = IntegrationConfig(
+            interpolation_degree=int(intp_degree),
+            lp_degree=lp_degree,
+            refinement_level=int(refinement),
+            integration_degree=int(deg_integration),
+            quadrature_rule=quadrature_rule,
+        )
+        return integrate(surface, integrand, config).values
 
     mesh_path ="../meshes/bioconcave_N=5980.mat"
 
@@ -482,7 +547,7 @@ Error Evaluation Function
 
     def err_g(intp_degree, lp_degree, mesh_path, refinement):
         t0 = time()
-        areas = sp.integration(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
+        areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun_1)
         t1 = time()
         sum_area = sum(areas)
         t1 = time()
