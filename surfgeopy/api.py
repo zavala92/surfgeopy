@@ -10,6 +10,7 @@ from .remesh import subdivide
 from .surf_integration import (
     DEFAULT_INTEGRATION_DEGREE,
     accumulate_surface_integrals,
+    compute_surf_geometry,
     compute_surf_quadrature,
 )
 from .utils import read_mesh_data
@@ -22,9 +23,11 @@ __all__ = [
     "DiagnosticIntegrationResult",
     "AdaptiveIteration",
     "AdaptiveIntegrationResult",
+    "SurfaceGeometryResult",
     "integrate",
     "integrate_with_diagnostics",
     "adaptive_integrate",
+    "surface_geometry",
 ]
 
 
@@ -261,6 +264,34 @@ class AdaptiveIntegrationResult:
         return "\n".join(lines)
 
 
+@dataclass(frozen=True)
+class SurfaceGeometryResult:
+    """Differential geometry samples on the interpolated curved surface."""
+
+    points: np.ndarray
+    weights: np.ndarray
+    offsets: np.ndarray
+    tangent_u: np.ndarray
+    tangent_v: np.ndarray
+    normal: np.ndarray
+    metric_tensor: np.ndarray
+    area_density: np.ndarray
+    second_fundamental_form: np.ndarray
+    mean_curvature: np.ndarray
+    gaussian_curvature: np.ndarray
+    config: IntegrationConfig
+
+    @property
+    def n_points(self) -> int:
+        """Return the number of sampled quadrature points."""
+        return self.points.shape[0]
+
+    @property
+    def n_faces(self) -> int:
+        """Return the number of input mesh faces represented by the offsets."""
+        return len(self.offsets) - 1
+
+
 def integrate(
     surface: LevelSetSurface,
     integrand: Callable[[np.ndarray], float] = lambda _: 1.0,
@@ -299,6 +330,61 @@ def integrate(
     )
     values = accumulate_surface_integrals(points, weights, offsets, integrand)
     return IntegrationResult(values, points, weights, offsets, config)
+
+
+def surface_geometry(
+    surface: LevelSetSurface,
+    config: Optional[IntegrationConfig] = None,
+) -> SurfaceGeometryResult:
+    """Evaluate geometry tensors and curvatures of the interpolated surface.
+
+    The routine builds the same high-order Minterpy surface map used by
+    :func:`integrate`, then differentiates the interpolant to obtain tangents,
+    metric tensor, unit normal, second fundamental form, mean curvature, and
+    Gaussian curvature at the quadrature points.
+    """
+    if config is None:
+        config = IntegrationConfig(interpolation_degree=6)
+    if config.interpolation_degree < 2:
+        raise ValueError("interpolation_degree must be at least 2 to compute curvature")
+
+    (
+        points,
+        weights,
+        offsets,
+        tangent_u,
+        tangent_v,
+        normal,
+        metric_tensor,
+        area_density,
+        second_fundamental_form,
+        mean_curvature,
+        gaussian_curvature,
+    ) = compute_surf_geometry(
+        surface.level_set,
+        surface.gradient,
+        surface.mesh.vertices,
+        surface.mesh.faces,
+        config.interpolation_degree,
+        config.lp_degree,
+        config.refinement_level,
+        config.integration_degree,
+        config.quadrature_rule,
+    )
+    return SurfaceGeometryResult(
+        points=points,
+        weights=weights,
+        offsets=offsets,
+        tangent_u=tangent_u,
+        tangent_v=tangent_v,
+        normal=normal,
+        metric_tensor=metric_tensor,
+        area_density=area_density,
+        second_fundamental_form=second_fundamental_form,
+        mean_curvature=mean_curvature,
+        gaussian_curvature=gaussian_curvature,
+        config=config,
+    )
 
 
 def integrate_with_diagnostics(

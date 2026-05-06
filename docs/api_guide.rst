@@ -24,6 +24,11 @@ The main user-facing classes are:
    Stores two integration runs, an a posteriori error estimate, local per-face
    differences, and a text summary.
 
+``SurfaceGeometryResult``
+   Stores quadrature-point samples of the interpolated surface geometry:
+   tangents, normal, metric tensor, area density, second fundamental form, mean
+   curvature, and Gaussian curvature.
+
 ``integrate``
    Runs the high-order implicit-surface integration workflow.
 
@@ -33,6 +38,10 @@ The main user-facing classes are:
 ``adaptive_integrate``
    Repeats diagnostic integration, refines faces with the largest local error
    indicators, and returns convergence history.
+
+``surface_geometry``
+   Evaluates Minterpy spectral derivatives of the high-order surface map and
+   returns differential geometry quantities at the quadrature points.
 
 Example
 -------
@@ -94,6 +103,26 @@ Adaptive Example
 and refines them by triangular quadrisection. The result stores the final
 surface mesh and an iteration history with the number of faces, marked faces,
 and error estimate at each step.
+
+Surface Geometry Example
+------------------------
+
+.. code-block:: python
+
+   geometry = surface_geometry(surface, config)
+
+   print(geometry.points)
+   print(geometry.normal)
+   print(geometry.metric_tensor)
+   print(geometry.area_density)
+   print(geometry.gaussian_curvature)
+
+``surface_geometry`` uses the same cubical reparametrization and Minterpy
+interpolation backend as ``integrate``. The interpolant is built on Minterpy's
+Chebyshev-Lobatto grid, and the resulting Newton polynomial is differentiated
+with respect to the two square coordinates. First derivatives give the surface
+tangents and metric tensor; second derivatives give the second fundamental form
+and curvatures. Curvature computation requires ``interpolation_degree >= 2``.
 
 Choosing Degrees
 ----------------

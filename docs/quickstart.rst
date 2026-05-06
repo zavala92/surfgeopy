@@ -88,6 +88,28 @@ The reported value ``report.total`` is the enriched integral. The fields
 ``absolute_error_estimate`` and ``relative_error_estimate`` measure the
 difference between the base and enriched runs.
 
+Surface Geometry
+----------------
+
+The high-order surface map can also be differentiated through Minterpy. The
+geometry interpolant is built on the Chebyshev-Lobatto grid and differentiated
+as a polynomial, which gives tangents, unit normals, metric tensors, area
+densities, second fundamental forms, and curvatures at the quadrature points:
+
+.. code-block:: python
+
+   from surfgeopy import surface_geometry
+
+   geometry = surface_geometry(surface, config)
+   print(geometry.normal)
+   print(geometry.gaussian_curvature)
+   print(geometry.mean_curvature)
+
+For the unit sphere, the Gaussian curvature is close to one and the absolute
+mean curvature is close to one. Curvature quantities require
+``interpolation_degree >= 2`` because second derivatives of the surface
+interpolant are used.
+
 Adaptive Refinement
 -------------------
 

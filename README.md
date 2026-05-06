@@ -204,6 +204,17 @@ result = integrate(surface, lambda _: 1.0, config)
 print(result.total)  # approx. 4*pi
 ```
 
+The same Minterpy interpolant can also be differentiated to inspect the
+high-order surface geometry:
+
+```python
+from surfgeopy import surface_geometry
+
+geometry = surface_geometry(surface, config)
+print(geometry.gaussian_curvature)
+print(geometry.mean_curvature)
+```
+
 Available quadrature rules include:
 
 - `"Pull_back_Gauss"`: simplex rule pulled back through square-squeezing.
@@ -268,6 +279,22 @@ adaptive = adaptive_integrate(
     marking_fraction=0.25,
 )
 print(adaptive.summary())
+```
+
+For differential geometry quantities, use the same configuration with
+`surface_geometry`. The routine evaluates the Minterpy surface interpolant built
+on the Chebyshev-Lobatto interpolation grid and uses Minterpy's polynomial
+differentiation at the quadrature points. It returns tangents, unit normals,
+the metric tensor, area density, second fundamental form, mean curvature, and
+Gaussian curvature:
+
+```python
+from surfgeopy import surface_geometry
+
+geometry = surface_geometry(surface, config)
+print(geometry.normal)
+print(geometry.metric_tensor)
+print(geometry.gaussian_curvature)
 ```
 
 ## Contributing to `surfgeopy`

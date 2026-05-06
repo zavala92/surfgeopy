@@ -13,7 +13,7 @@ from .utils import (
 
 __all__ = [
     'integration', 'accumulate_surface_integrals', 'compute_surf_quadrature',
-    'quadrature_surf_tri', 'quadrature_split_surf_tri'
+    'compute_surf_geometry', 'quadrature_surf_tri', 'quadrature_split_surf_tri'
 ]
 
 DEFAULT_INTEGRATION_DEGREE = 14
@@ -148,6 +148,152 @@ def compute_surf_quadrature(
     ws = ws[:index]
     offset[n_faces] = index
     return pnts, ws, offset
+
+
+def compute_surf_geometry(
+    ls_function: Callable[[np.ndarray], float],
+    ls_grad_func: Callable[[np.ndarray], np.ndarray],
+    vertices: np.ndarray,
+    faces: np.ndarray,
+    interp_deg: int,
+    lp_dgr: int,
+    Refinement: int,
+    deg_integration: int = 14,
+    quadrature_rule: str = 'Pull_back_Gauss'
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+]:
+    """Sample differential geometry quantities on the curved surface patches.
+
+    The same Minterpy interpolant used by the integration routine is
+    differentiated spectrally to obtain first and second parametric
+    derivatives of the surface map.
+    """
+    if interp_deg < 2:
+        raise ValueError("interp_deg must be at least 2 to compute curvature")
+
+    surface = ImplicitSurface(ls_function, ls_grad_func)
+    n_faces = faces.shape[0]
+    nv_surf = faces.shape[1]
+    offset = np.zeros(n_faces + 1, dtype=int)
+
+    mi = MultiIndexSet.from_degree(spatial_dimension=2, poly_degree=interp_deg, lp_degree=lp_dgr)
+    grid = Grid(mi)
+    generating_points = pushforward(grid.unisolvent_nodes, duffy_transform=False)
+    quad_ps = simplex_barycentric_coordinates(generating_points)
+    reference_quadrature = make_reference_quadrature(deg_integration, quadrature_rule)
+
+    points = []
+    weights = []
+    tangent_s = []
+    tangent_t = []
+    normal = []
+    metric_tensor = []
+    area_density = []
+    second_fundamental_form = []
+    mean_curvature = []
+    gaussian_curvature = []
+
+    for fun_id in range(n_faces):
+        offset[fun_id] = len(points)
+
+        n_elem = nv_surf - 1
+        while faces[fun_id, n_elem] < 0:
+            n_elem -= 1
+        if n_elem < 2:
+            continue
+
+        for j in range(1, n_elem):
+            lvids = [0, j, j + 1]
+            local_vertices = vertices[faces[fun_id, lvids]]
+            local_faces = np.array([[0, 1, 2]])
+            for _ in range(Refinement):
+                local_vertices, local_faces = subdivide(local_vertices, local_faces)
+
+            for local_face in range(local_faces.shape[0]):
+                pnts_p = project_triangle_nodes(
+                    surface,
+                    local_vertices[local_faces[local_face]],
+                    quad_ps,
+                )
+                interpol_coeffs = np.squeeze(dds(pnts_p, grid.tree))
+                newt_poly = NewtonPolynomial(mi, interpol_coeffs)
+                ds_poly = newt_poly.diff([1, 0], backend="numba-par")
+                dt_poly = newt_poly.diff([0, 1], backend="numba-par")
+                dss_poly = newt_poly.diff([2, 0], backend="numba-par")
+                dst_poly = newt_poly.diff([1, 1], backend="numba-par")
+                dtt_poly = newt_poly.diff([0, 2], backend="numba-par")
+
+                for qq in range(reference_quadrature.size):
+                    evaluation_point = reference_quadrature.evaluation_points[qq]
+                    evaluation_point = np.array([[evaluation_point[0], evaluation_point[1]]])
+                    point = newt_poly(evaluation_point)[0]
+                    p_s = ds_poly(evaluation_point)[0]
+                    p_t = dt_poly(evaluation_point)[0]
+                    p_ss = dss_poly(evaluation_point)[0]
+                    p_st = dst_poly(evaluation_point)[0]
+                    p_tt = dtt_poly(evaluation_point)[0]
+
+                    cross = _cross(p_s, p_t)
+                    jacobian = compute_norm(cross)
+                    if jacobian <= np.finfo(float).eps:
+                        unit_normal = np.full(3, np.nan)
+                    else:
+                        unit_normal = cross / jacobian
+
+                    E = float(np.dot(p_s, p_s))
+                    F = float(np.dot(p_s, p_t))
+                    G = float(np.dot(p_t, p_t))
+                    L = float(np.dot(p_ss, unit_normal))
+                    M = float(np.dot(p_st, unit_normal))
+                    N = float(np.dot(p_tt, unit_normal))
+                    denominator = E * G - F * F
+                    if denominator <= np.finfo(float).eps or not np.isfinite(denominator):
+                        mean = np.nan
+                        gaussian = np.nan
+                    else:
+                        mean = (E * N - 2.0 * F * M + G * L) / (2.0 * denominator)
+                        gaussian = (L * N - M * M) / denominator
+
+                    points.append(point)
+                    weights.append(
+                        reference_quadrature.weights[qq] *
+                        jacobian *
+                        reference_quadrature.weight_scale(qq)
+                    )
+                    tangent_s.append(p_s)
+                    tangent_t.append(p_t)
+                    normal.append(unit_normal)
+                    metric_tensor.append([[E, F], [F, G]])
+                    area_density.append(jacobian)
+                    second_fundamental_form.append([[L, M], [M, N]])
+                    mean_curvature.append(mean)
+                    gaussian_curvature.append(gaussian)
+
+    offset[n_faces] = len(points)
+    return (
+        np.asarray(points, dtype=float),
+        np.asarray(weights, dtype=float),
+        offset,
+        np.asarray(tangent_s, dtype=float),
+        np.asarray(tangent_t, dtype=float),
+        np.asarray(normal, dtype=float),
+        np.asarray(metric_tensor, dtype=float),
+        np.asarray(area_density, dtype=float),
+        np.asarray(second_fundamental_form, dtype=float),
+        np.asarray(mean_curvature, dtype=float),
+        np.asarray(gaussian_curvature, dtype=float),
+    )
 
 def quadrature_surf_tri(
     ls_function: Callable[[np.ndarray], float],

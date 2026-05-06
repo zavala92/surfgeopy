@@ -11,6 +11,7 @@ from surfgeopy import (
     RECURSIVE_NODES_GAUSS_LEGENDRE,
     ProjectionResult,
     ReferenceQuadrature,
+    SurfaceGeometryResult,
     SurfaceMesh,
     affine_triangle_points,
     adaptive_integrate,
@@ -22,6 +23,7 @@ from surfgeopy import (
     pushforward,
     quadrule_on_simplex,
     simplex_barycentric_coordinates,
+    surface_geometry,
     subdivide,
     SimpleImplicitSurfaceProjection,
 )
@@ -242,6 +244,50 @@ class TestSurfgeopyFunctions:
             adaptive_integrate(surface, lambda _: 1.0, config, marking_fraction=0.0)
         with pytest.raises(ValueError, match="min_marked_faces"):
             adaptive_integrate(surface, lambda _: 1.0, config, min_marked_faces=0)
+
+    def test_surface_geometry_api_on_sphere(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(
+            interpolation_degree=6,
+            refinement_level=0,
+            integration_degree=8,
+            quadrature_rule="Gauss_Legendre",
+        )
+
+        geometry = surface_geometry(surface, config)
+
+        assert isinstance(geometry, SurfaceGeometryResult)
+        assert geometry.n_faces == mesh.n_faces
+        assert geometry.n_points == geometry.points.shape[0]
+        assert geometry.weights.shape == (geometry.n_points,)
+        assert geometry.tangent_u.shape == geometry.points.shape
+        assert geometry.tangent_v.shape == geometry.points.shape
+        assert geometry.normal.shape == geometry.points.shape
+        assert geometry.metric_tensor.shape == (geometry.n_points, 2, 2)
+        assert geometry.second_fundamental_form.shape == (geometry.n_points, 2, 2)
+        assert geometry.area_density.shape == (geometry.n_points,)
+        assert geometry.mean_curvature.shape == (geometry.n_points,)
+        assert geometry.gaussian_curvature.shape == (geometry.n_points,)
+        assert np.all(geometry.area_density > 0.0)
+        np.testing.assert_allclose(np.linalg.norm(geometry.points, axis=1), 1.0, atol=1e-10)
+        np.testing.assert_allclose(np.linalg.norm(geometry.normal, axis=1), 1.0, atol=1e-12)
+        assert np.all(np.isfinite(geometry.mean_curvature))
+        assert np.all(np.isfinite(geometry.gaussian_curvature))
+        assert np.abs(np.median(geometry.gaussian_curvature) - 1.0) < 1e-3
+        assert np.abs(np.median(np.abs(geometry.mean_curvature)) - 1.0) < 1e-3
+
+    def test_surface_geometry_requires_second_order_interpolation(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(interpolation_degree=1)
+
+        with pytest.raises(ValueError, match="at least 2"):
+            surface_geometry(surface, config)
 
     def test_integration_config_validates_degrees(self):
         with pytest.raises(ValueError, match="interpolation_degree"):
