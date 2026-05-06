@@ -17,7 +17,6 @@ This benchmark focuses on the computational task of computing surface areas for 
       surface = LevelSetSurface(mesh, phi, dphi)
       config = IntegrationConfig(
           interpolation_degree=int(interpolation_degree),
-          lp_degree=lp_degree,
           refinement_level=int(refinement_level),
       )
       result = integrate(surface, integrand, config)
@@ -33,7 +32,6 @@ If the user would like to keep the default quadrature scheme but change the quad
       surface = LevelSetSurface(mesh, phi, dphi)
       config = IntegrationConfig(
           interpolation_degree=int(interpolation_degree),
-          lp_degree=lp_degree,
           refinement_level=int(refinement_level),
           integration_degree=int(integration_degree),
       )
@@ -52,7 +50,6 @@ If the user prefers to keep the default ``Gauss-Legendre`` scheme with a specifi
       surface = LevelSetSurface(mesh, phi, dphi)
       config = IntegrationConfig(
           interpolation_degree=int(interpolation_degree),
-          lp_degree=lp_degree,
           refinement_level=int(refinement_level),
           integration_degree=int(integration_degree),
           quadrature_rule='Gauss_Legendre',
@@ -96,7 +93,6 @@ Error Evaluation Function
        t0 = time()
        config = IntegrationConfig(
            interpolation_degree=int(interpolation_degree),
-           lp_degree=lp_degree,
            refinement_level=int(refinement_level),
        )
        result = integrate(surface, f1, config)
@@ -116,7 +112,6 @@ Polynomial degree
 .. code-block:: python
 
    Nrange = list(range(2, 15))
-   lp_degree = float("inf")
    refinement = 0
    error1 = []
    for n in Nrange:
@@ -208,7 +203,6 @@ Error Evaluation Function
        t0 = time()
        config = IntegrationConfig(
            interpolation_degree=int(interpolation_degree),
-           lp_degree=lp_degree,
            refinement_level=int(refinement_level),
            integration_degree=int(integration_degree),
        )
@@ -228,7 +222,6 @@ Polynomial degree
 .. code-block:: python
 
    Nrange = list(range(2, 18))
-   lp_degree = float("inf")
    refinement = 1
    #By default, the integration degree is set to 14.
    integ_degree=25

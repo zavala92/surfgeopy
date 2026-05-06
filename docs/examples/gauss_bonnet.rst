@@ -78,7 +78,6 @@ Error Evaluation Function
        t0 = time()
        config = IntegrationConfig(
            interpolation_degree=int(interpolation_degree),
-           lp_degree=lp_degree,
            refinement_level=int(refinement_level),
        )
        result = integrate(surface, fun_1, config)
@@ -97,7 +96,6 @@ Degree of Polynomial
 .. code-block:: python
 
    Nrange = list(range(2, 18))
-   lp_degree = float("inf")
    error1 = [] 
    refinement = 0
 
@@ -183,7 +181,6 @@ Error Evaluation Function
         t0 = time()
         config = IntegrationConfig(
             interpolation_degree=int(interpolation_degree),
-            lp_degree=lp_degree,
             refinement_level=int(refinement_level),
         )
         result = integrate(surface, fun_1, config)
@@ -202,7 +199,6 @@ Degree of Polynomial
 .. code-block:: python
 
     Nrange = list(range(2, 15))
-    lp_degree = float("inf")
     error1 = []
     refinement = 0
     for n in Nrange:
@@ -280,7 +276,6 @@ Error Evaluation Function
        t0 = time()
        config = IntegrationConfig(
            interpolation_degree=int(interpolation_degree),
-           lp_degree=lp_degree,
            refinement_level=int(refinement_level),
        )
        result = integrate(surface, fun_1, config)
@@ -300,7 +295,6 @@ Degree of Polynomial
 .. code-block:: python
 
    Nrange = list(range(2, 27))
-   lp_degree = float("inf")
    error1 = [] 
    execution_times = []
    refinement = 0
@@ -382,7 +376,6 @@ Error Evaluation Function
         t0 = time()
         config = IntegrationConfig(
             interpolation_degree=int(interpolation_degree),
-            lp_degree=lp_degree,
             refinement_level=int(refinement_level),
         )
         result = integrate(surface, fun_1, config)
@@ -401,7 +394,6 @@ Degree of Polynomial
 .. code-block:: python
 
     Nrange = list(range(2, 15))
-    lp_degree = float("inf")
     error1 = [] 
     refinement = 0
     for n in Nrange:
@@ -524,7 +516,6 @@ Error Evaluation Function
         t0 = time()
         config = IntegrationConfig(
             interpolation_degree=int(interpolation_degree),
-            lp_degree=lp_degree,
             refinement_level=int(refinement_level),
         )
         result = integrate(surface, fun_1, config)
@@ -545,7 +536,6 @@ Degree of Polynomial
 .. code-block:: python
 
     Nrange = list(range(2, 15))
-    lp_degree = float("inf")
     error1 = [] 
     refinement = 0
     for n in Nrange:

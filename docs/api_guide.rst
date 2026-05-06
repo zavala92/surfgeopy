@@ -41,7 +41,6 @@ Example
 
    config = IntegrationConfig(
        interpolation_degree=8,
-       lp_degree=float("inf"),
        refinement_level=1,
        integration_degree=14,
        quadrature_rule="Pull_back_Gauss",
