@@ -13,19 +13,15 @@ This benchmark focuses on the computational task of computing surface areas for 
 
       from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
       
-      def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                            integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-          mesh = SurfaceMesh.from_mat(mesh_path)
-          surface = LevelSetSurface(mesh, phi, dphi)
-          config = IntegrationConfig(
-              interpolation_degree=int(intp_degree),
-              lp_degree=lp_degree,
-              refinement_level=int(refinement),
-              integration_degree=int(deg_integration),
-              quadrature_rule=quadrature_rule,
-          )
-          return integrate(surface, integrand, config).values
-      integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, integrand)
+      mesh = SurfaceMesh.from_mat(mesh_path)
+      surface = LevelSetSurface(mesh, phi, dphi)
+      config = IntegrationConfig(
+          interpolation_degree=int(interpolation_degree),
+          lp_degree=lp_degree,
+          refinement_level=int(refinement_level),
+      )
+      result = integrate(surface, integrand, config)
+      result.total
 
 If the user would like to keep the default quadrature scheme but change the quadrature degree, use:
 
@@ -33,19 +29,16 @@ If the user would like to keep the default quadrature scheme but change the quad
 
       from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
       
-      def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                            integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-          mesh = SurfaceMesh.from_mat(mesh_path)
-          surface = LevelSetSurface(mesh, phi, dphi)
-          config = IntegrationConfig(
-              interpolation_degree=int(intp_degree),
-              lp_degree=lp_degree,
-              refinement_level=int(refinement),
-              integration_degree=int(deg_integration),
-              quadrature_rule=quadrature_rule,
-          )
-          return integrate(surface, integrand, config).values
-      integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, integrand, deg_integration)
+      mesh = SurfaceMesh.from_mat(mesh_path)
+      surface = LevelSetSurface(mesh, phi, dphi)
+      config = IntegrationConfig(
+          interpolation_degree=int(interpolation_degree),
+          lp_degree=lp_degree,
+          refinement_level=int(refinement_level),
+          integration_degree=int(integration_degree),
+      )
+      result = integrate(surface, integrand, config)
+      result.total
 
 2. Gauss-Legendre Rule
 
@@ -55,19 +48,17 @@ If the user prefers to keep the default ``Gauss-Legendre`` scheme with a specifi
 
       from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
       
-      def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                            integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-          mesh = SurfaceMesh.from_mat(mesh_path)
-          surface = LevelSetSurface(mesh, phi, dphi)
-          config = IntegrationConfig(
-              interpolation_degree=int(intp_degree),
-              lp_degree=lp_degree,
-              refinement_level=int(refinement),
-              integration_degree=int(deg_integration),
-              quadrature_rule=quadrature_rule,
-          )
-          return integrate(surface, integrand, config).values
-      integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, integrand, deg_integration, 'Gauss_Legendre')
+      mesh = SurfaceMesh.from_mat(mesh_path)
+      surface = LevelSetSurface(mesh, phi, dphi)
+      config = IntegrationConfig(
+          interpolation_degree=int(interpolation_degree),
+          lp_degree=lp_degree,
+          refinement_level=int(refinement_level),
+          integration_degree=int(integration_degree),
+          quadrature_rule='Gauss_Legendre',
+      )
+      result = integrate(surface, integrand, config)
+      result.total
 
 
 Imports
@@ -83,18 +74,6 @@ Imports
    # Local imports
    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
    
-   def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                         integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-       mesh = SurfaceMesh.from_mat(mesh_path)
-       surface = LevelSetSurface(mesh, phi, dphi)
-       config = IntegrationConfig(
-           interpolation_degree=int(intp_degree),
-           lp_degree=lp_degree,
-           refinement_level=int(refinement),
-           integration_degree=int(deg_integration),
-           quadrature_rule=quadrature_rule,
-       )
-       return integrate(surface, integrand, config).values
 
    mesh_path = "../meshes/SphereMesh_N=1652_r=1.mat"
 
@@ -109,12 +88,20 @@ Error Evaluation Function
 
 .. code-block:: python
 
-   def err_t(intp_degree, lp_degree, mesh_path, refinement):
+   mesh = SurfaceMesh.from_mat(mesh_path)
+   surface = LevelSetSurface(mesh, phi, dphi)
+
+   def surface_area_error(interpolation_degree, refinement_level=0):
        f1 = lambda _: 1
        t0 = time()
-       areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, f1)
+       config = IntegrationConfig(
+           interpolation_degree=int(interpolation_degree),
+           lp_degree=lp_degree,
+           refinement_level=int(refinement_level),
+       )
+       result = integrate(surface, f1, config)
        t1 = time()
-       sum_area = sum(areas)
+       sum_area = result.total
        t1 = time()
        exact_area = 4 * pi
 
@@ -135,7 +122,7 @@ Polynomial degree
    for n in Nrange:
        if n % 1 == 0:
            print(n)
-       erro1 = err_t(int(n), lp_degree, mesh_path, refinement)
+       erro1 = surface_area_error(int(n), refinement)
        error1.append(erro1)
 
 Result Visualization
@@ -194,18 +181,6 @@ Imports
    # Local imports
    from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
    
-   def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                         integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-       mesh = SurfaceMesh.from_mat(mesh_path)
-       surface = LevelSetSurface(mesh, phi, dphi)
-       config = IntegrationConfig(
-           interpolation_degree=int(intp_degree),
-           lp_degree=lp_degree,
-           refinement_level=int(refinement),
-           integration_degree=int(deg_integration),
-           quadrature_rule=quadrature_rule,
-       )
-       return integrate(surface, integrand, config).values
 
    mesh_path ="../meshes/SphereMesh_N=124_r=1.mat"
 
@@ -226,11 +201,20 @@ Error Evaluation Function
 
 .. code-block:: python
 
-   def err_t(intp_degree, lp_degree, mesh_path, refinement,integ_degree):
+   mesh = SurfaceMesh.from_mat(mesh_path)
+   surface = LevelSetSurface(mesh, phi, dphi)
+
+   def spherical_harmonic_error(interpolation_degree, refinement_level, integration_degree):
        t0 = time()
-       areas = integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement, fun,integ_degree)
+       config = IntegrationConfig(
+           interpolation_degree=int(interpolation_degree),
+           lp_degree=lp_degree,
+           refinement_level=int(refinement_level),
+           integration_degree=int(integration_degree),
+       )
+       result = integrate(surface, fun, config)
        t1 = time()
-       sum_area = sum(areas)
+       sum_area = result.total
        t1 = time()
        exact_int = 0
        print("Absolute error: ", abs(sum_area - exact_int))
@@ -252,7 +236,7 @@ Polynomial degree
    for n in Nrange:
        if n % 1 == 0:
            print(n)
-       erro1 = err_t(int(n), lp_degree, mesh_path, refinement,integ_degree)
+       erro1 = spherical_harmonic_error(int(n), refinement, integ_degree)
        error1.append(erro1)
 
     

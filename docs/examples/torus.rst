@@ -25,18 +25,6 @@ Local imports
 
     from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
     
-    def integrate_surface(phi, dphi, mesh_path, intp_degree, lp_degree, refinement,
-                          integrand, deg_integration=14, quadrature_rule="Pull_back_Gauss"):
-        mesh = SurfaceMesh.from_mat(mesh_path)
-        surface = LevelSetSurface(mesh, phi, dphi)
-        config = IntegrationConfig(
-            interpolation_degree=int(intp_degree),
-            lp_degree=lp_degree,
-            refinement_level=int(refinement),
-            integration_degree=int(deg_integration),
-            quadrature_rule=quadrature_rule,
-        )
-        return integrate(surface, integrand, config).values
 
 In this experiment, we start with a coarse mesh and iteratively refine it twice for enhanced accuracy.
 
@@ -61,12 +49,20 @@ Error Evaluation Function
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: python
 
-    def err_t(intp_degree,lp_degree,mesh_path, refinement):
+    mesh = SurfaceMesh.from_mat(mesh_path)
+    surface = LevelSetSurface(mesh, phi, dphi)
+
+    def surface_area_error(interpolation_degree, refinement_level=0):
         f1=lambda _: 1
         t0 = time()
-        areas = integrate_surface(phi,dphi, mesh_path,intp_degree,lp_degree,refinement, f1)
+        config = IntegrationConfig(
+            interpolation_degree=int(interpolation_degree),
+            lp_degree=lp_degree,
+            refinement_level=int(refinement_level),
+        )
+        result = integrate(surface, f1, config)
         t1 = time()
-        sum_area =sum(areas)
+        sum_area = result.total
         t1 = time()
         exact_area =(2*pi*R)*(2*pi*r)
         
@@ -86,11 +82,11 @@ Polynomial degree
     error3=[]
     for n in Nrange:
         if n%1==0:print(n)
-        erro1 = err_t(int(n),lp_degree,mesh_path,0)
+        erro1 = surface_area_error(int(n), 0)
         error1.append(erro1)
-        erro2 = err_t(n,lp_degree,mesh_path, 1)
+        erro2 = surface_area_error(n, 1)
         error2.append(erro2)
-        erro3 = err_t(n,lp_degree,mesh_path, 2)
+        erro3 = surface_area_error(n, 2)
         error3.append(erro3)
         
 Result Visualization
