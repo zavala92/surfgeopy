@@ -110,31 +110,6 @@ mean curvature is close to one. Curvature quantities require
 ``interpolation_degree >= 2`` because second derivatives of the surface
 interpolant are used.
 
-Adaptive Refinement
--------------------
-
-If you do not know how much mesh refinement is needed, use
-``adaptive_integrate``:
-
-.. code-block:: python
-
-   from surfgeopy import adaptive_integrate
-
-   adaptive = adaptive_integrate(
-       surface,
-       lambda _: 1.0,
-       config,
-       relative_tolerance=1.0e-8,
-       max_iterations=4,
-       marking_fraction=0.25,
-   )
-
-   print(adaptive.total)
-   print(adaptive.summary())
-
-The adaptive routine refines the faces with the largest local diagnostic
-indicators and stores a convergence history in ``adaptive.history``.
-
 Indicator-Based Mesh Adaptation
 -------------------------------
 

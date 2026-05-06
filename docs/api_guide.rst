@@ -39,10 +39,6 @@ The main user-facing classes are:
 ``integrate_with_diagnostics``
    Runs a base and enriched integration configuration to estimate accuracy.
 
-``adaptive_integrate``
-   Repeats diagnostic integration, refines faces with the largest local error
-   indicators, and returns convergence history.
-
 ``refine_by_indicator``
    Refines the reference mesh using an indicator evaluated at affine face
    centers. This is useful when the adapted mesh should be generated before a
@@ -89,29 +85,6 @@ Diagnostics Example
 difference between the enriched and base totals. If the requested tolerance is
 not reached, ``report.recommended_config`` proposes the next enriched
 configuration to try.
-
-Adaptive Example
-----------------
-
-.. code-block:: python
-
-   adaptive = adaptive_integrate(
-       surface,
-       integrand,
-       config,
-       relative_tolerance=1.0e-8,
-       max_iterations=4,
-       marking_fraction=0.25,
-   )
-
-   print(adaptive.total)
-   print(adaptive.relative_error_estimate)
-   print(adaptive.summary())
-
-``adaptive_integrate`` marks the faces with the largest local error indicators
-and refines them by triangular quadrisection. The result stores the final
-surface mesh and an iteration history with the number of faces, marked faces,
-and error estimate at each step.
 
 Indicator Refinement Example
 ----------------------------
