@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from .reference_quadrature import PULL_BACK_GAUSS
-from .remesh import subdivide
+from .remesh import subdivide, subdivide_conforming
 from .surf_integration import (
     DEFAULT_INTEGRATION_DEGREE,
     accumulate_surface_integrals,
@@ -554,6 +554,7 @@ def refine_by_indicator(
     max_iterations: int = 6,
     threshold_fraction: float = 0.25,
     use_absolute: bool = True,
+    conforming: bool = True,
 ) -> IndicatorRefinementResult:
     """Refine the reference mesh using an indicator evaluated at face centers.
 
@@ -561,7 +562,9 @@ def refine_by_indicator(
     is adapted first and a polynomial degree study is run afterwards on the
     adapted mesh. At each iteration, the indicator is evaluated at the affine
     center of every triangular face. Faces with indicator value larger than
-    ``threshold_fraction * max_indicator`` are subdivided.
+    ``threshold_fraction * max_indicator`` are subdivided. By default,
+    neighboring faces with hanging edges are split by green refinement so the
+    adapted reference mesh remains conforming.
     """
     if max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
@@ -603,7 +606,8 @@ def refine_by_indicator(
                 history=tuple(history),
             )
 
-        vertices, faces = subdivide(
+        refine = subdivide_conforming if conforming else subdivide
+        vertices, faces = refine(
             current_surface.mesh.vertices,
             current_surface.mesh.faces,
             face_index=marked_faces,

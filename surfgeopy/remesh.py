@@ -8,7 +8,10 @@ Deal with re-triangulation of existing meshes.
 import numpy as np
 from .utils import *
 
-__all__ = ['subdivide', 'faces_to_edges', 'unique_rows', 'hashable_rows', 'unique_ordered']
+__all__ = [
+    'subdivide', 'subdivide_conforming', 'faces_to_edges', 'unique_rows',
+    'hashable_rows', 'unique_ordered'
+]
 
 def subdivide(vertices, faces, face_index=None, vertex_attributes=None, return_index=False):
     """
@@ -86,6 +89,94 @@ def subdivide(vertices, faces, face_index=None, vertex_attributes=None, return_i
         return new_vertices, new_faces, index_dict
 
     return new_vertices, new_faces
+
+
+def subdivide_conforming(vertices, faces, face_index=None):
+    """Subdivide marked triangles and split neighboring hanging edges.
+
+    Marked faces are red-refined into four triangles. Unmarked faces that share
+    one or more split edges are green-refined so every split edge is represented
+    on both sides. This keeps the reference mesh conforming while allowing local
+    indicator-driven refinement.
+    """
+    vertices = np.asarray(vertices, dtype=float)
+    faces = np.asarray(faces, dtype=int)
+    if faces.ndim != 2 or faces.shape[1] != 3:
+        raise ValueError("subdivide_conforming requires triangular faces")
+
+    face_mask = np.ones(len(faces), dtype=bool) if face_index is None else np.zeros(len(faces), dtype=bool)
+    if face_index is not None:
+        face_mask[np.asarray(face_index, dtype=int)] = True
+
+    split_edges = set()
+    for face in faces[face_mask]:
+        a, b, c = face
+        split_edges.add(tuple(sorted((a, b))))
+        split_edges.add(tuple(sorted((b, c))))
+        split_edges.add(tuple(sorted((c, a))))
+
+    if not split_edges:
+        return vertices.copy(), faces.copy()
+
+    midpoint_index = {}
+    new_vertices = vertices.tolist()
+    for edge in sorted(split_edges):
+        midpoint_index[edge] = len(new_vertices)
+        new_vertices.append(((vertices[edge[0]] + vertices[edge[1]]) / 2.0).tolist())
+
+    def midpoint(a, b):
+        return midpoint_index[tuple(sorted((a, b)))]
+
+    new_faces = []
+    for is_marked, face in zip(face_mask, faces):
+        a, b, c = [int(v) for v in face]
+        ab = tuple(sorted((a, b))) in split_edges
+        bc = tuple(sorted((b, c))) in split_edges
+        ca = tuple(sorted((c, a))) in split_edges
+        n_split = int(ab) + int(bc) + int(ca)
+
+        if n_split == 0:
+            new_faces.append([a, b, c])
+            continue
+
+        if is_marked or n_split == 3:
+            m_ab = midpoint(a, b)
+            m_bc = midpoint(b, c)
+            m_ca = midpoint(c, a)
+            new_faces.extend([
+                [a, m_ab, m_ca],
+                [m_ab, b, m_bc],
+                [m_ca, m_bc, c],
+                [m_ab, m_bc, m_ca],
+            ])
+            continue
+
+        if n_split == 1:
+            if ab:
+                m_ab = midpoint(a, b)
+                new_faces.extend([[a, m_ab, c], [m_ab, b, c]])
+            elif bc:
+                m_bc = midpoint(b, c)
+                new_faces.extend([[b, m_bc, a], [m_bc, c, a]])
+            else:
+                m_ca = midpoint(c, a)
+                new_faces.extend([[c, m_ca, b], [m_ca, a, b]])
+            continue
+
+        if ab and bc:
+            m_ab = midpoint(a, b)
+            m_bc = midpoint(b, c)
+            new_faces.extend([[b, m_bc, m_ab], [a, m_ab, m_bc], [a, m_bc, c]])
+        elif bc and ca:
+            m_bc = midpoint(b, c)
+            m_ca = midpoint(c, a)
+            new_faces.extend([[c, m_ca, m_bc], [a, b, m_bc], [a, m_bc, m_ca]])
+        else:
+            m_ca = midpoint(c, a)
+            m_ab = midpoint(a, b)
+            new_faces.extend([[a, m_ab, m_ca], [m_ab, b, c], [m_ab, c, m_ca]])
+
+    return np.asarray(new_vertices, dtype=float), np.asarray(new_faces, dtype=int)
 
 def faces_to_edges(faces, return_index=False):
     """

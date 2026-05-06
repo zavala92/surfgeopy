@@ -27,6 +27,7 @@ from surfgeopy import (
     surface_geometry,
     refine_by_indicator,
     subdivide,
+    subdivide_conforming,
     SimpleImplicitSurfaceProjection,
 )
 
@@ -53,6 +54,22 @@ class TestSurfgeopyFunctions:
         result = subdivide(vertices, faces)
         np.testing.assert_array_equal(result[0], expected_vertices)
         np.testing.assert_array_equal(result[1], expected_faces)
+
+    def test_subdivide_conforming_splits_neighbor_hanging_edges(self):
+        vertices = np.array([
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ])
+        faces = np.array([[0, 1, 2], [0, 2, 3]])
+
+        refined_vertices, refined_faces = subdivide_conforming(vertices, faces, face_index=np.array([0]))
+
+        assert refined_vertices.shape == (7, 3)
+        assert refined_faces.shape == (6, 3)
+        assert any(set(face) == {0, 5, 3} for face in refined_faces)
+        assert any(set(face) == {5, 2, 3} for face in refined_faces)
 
     def test_pushforward(self):
         unisolvent_nodes_square = np.array([[-1, -1], [-1, 1], [1, 1], [1, -1]])
@@ -272,7 +289,7 @@ class TestSurfgeopyFunctions:
         assert refined.history[0].n_marked_faces == 1
         np.testing.assert_array_equal(refined.history[0].marked_faces, np.array([0]))
         assert refined.history[0].threshold == pytest.approx(1.0 / 3.0)
-        assert refined.n_faces == 5
+        assert refined.n_faces == 6
         assert "Final faces" in refined.summary()
 
     def test_refine_by_indicator_validates_parameters(self):

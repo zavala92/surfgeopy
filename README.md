@@ -298,6 +298,10 @@ adapted = refine_by_indicator(
 adapted_surface = adapted.final_surface
 ```
 
+The default indicator refinement keeps the adapted reference mesh conforming:
+marked triangles are red-refined, and adjacent triangles with split edges are
+green-refined before the high-order curved patches are reconstructed.
+
 For differential geometry quantities, use the same configuration with
 `surface_geometry`. The routine evaluates the Minterpy surface interpolant built
 on the Chebyshev-Lobatto interpolation grid and uses Minterpy's polynomial

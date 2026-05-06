@@ -156,9 +156,10 @@ varied afterwards, use ``refine_by_indicator``:
 
 The indicator is evaluated at the affine center of each reference triangle.
 Faces with ``abs(indicator(center))`` above ``threshold_fraction`` times the
-maximum indicator are subdivided. This mirrors host-mesh adaptation workflows
-where the high-order curved patches are rebuilt only after the adapted
-reference mesh has been created.
+maximum indicator are subdivided. By default, neighboring faces with split
+edges are green-refined too, so the adapted reference mesh is conforming. This
+mirrors host-mesh adaptation workflows where the high-order curved patches are
+rebuilt only after the adapted reference mesh has been created.
 
 Legacy Function
 ---------------

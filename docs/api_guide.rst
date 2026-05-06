@@ -139,9 +139,11 @@ Indicator Refinement Example
 
 ``refine_by_indicator`` follows the host-grid adaptation pattern: it evaluates
 ``abs(indicator(center))`` on each linear reference triangle, marks faces above
-``threshold_fraction * max_indicator``, and subdivides the marked faces. The
-high-order curved interpolation is then constructed on the adapted reference
-mesh during the subsequent integration run.
+``threshold_fraction * max_indicator``, and subdivides the marked faces. By
+default, adjacent faces with split edges are also green-refined so the adapted
+reference mesh remains conforming. The high-order curved interpolation is then
+constructed on the adapted reference mesh during the subsequent integration
+run.
 
 Surface Geometry Example
 ------------------------
