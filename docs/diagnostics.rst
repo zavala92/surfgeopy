@@ -68,6 +68,57 @@ The estimate is not a rigorous proof of the error. It is a practical numerical
 diagnostic: if enriching the geometry and quadrature hardly changes the answer,
 the computed integral is usually stable with respect to those parameters.
 
+Adaptive Refinement
+-------------------
+
+``adaptive_integrate`` uses the local error indicators from
+``integrate_with_diagnostics`` to refine only the faces that contribute most to
+the estimated error.
+
+.. code-block:: python
+
+   from surfgeopy import adaptive_integrate
+
+   adaptive = adaptive_integrate(
+       surface,
+       integrand,
+       config,
+       relative_tolerance=1.0e-8,
+       max_iterations=4,
+       marking_fraction=0.25,
+   )
+
+   print(adaptive.summary())
+
+At each iteration, ``surfgeopy``:
+
+1. Computes base and enriched integrals on the current mesh.
+2. Forms local indicators from the per-face differences.
+3. Marks the largest indicators according to ``marking_fraction``.
+4. Refines the marked faces by triangular quadrisection.
+5. Repeats until the tolerance is reached or ``max_iterations`` is exhausted.
+
+The returned ``AdaptiveIntegrationResult`` contains:
+
+``total``
+   Final enriched integral value.
+
+``absolute_error_estimate`` and ``relative_error_estimate``
+   Final global diagnostic estimates.
+
+``final_surface``
+   The final ``LevelSetSurface`` with the adaptively refined reference mesh.
+
+``history``
+   Per-iteration records with face counts, marked faces, and error estimates.
+
+``converged``
+   Whether the requested diagnostic tolerance was reached.
+
+The first implementation uses local triangular quadrisection. This may produce
+hanging nodes in the reference mesh, but each face is integrated independently
+and the refined faces still partition the original reference triangles.
+
 Projection Diagnostics
 ----------------------
 

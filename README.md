@@ -24,6 +24,7 @@ integrals with high-order quadrature.
   and quadrature rule.
 - Per-face integration values plus quadrature points and weights for diagnostics.
 - Built-in accuracy diagnostics by comparing a base run with an enriched run.
+- Adaptive refinement from local diagnostic error indicators.
 - Useful for surface PDEs, geometry processing, curvature integrals, and
   validation problems such as sphere/torus area and Gauss-Bonnet checks.
 
@@ -251,6 +252,22 @@ from surfgeopy import integrate_with_diagnostics
 
 report = integrate_with_diagnostics(surface, lambda _: 1.0, config)
 print(report.summary())
+```
+
+For automatic local refinement based on the diagnostic indicators:
+
+```python
+from surfgeopy import adaptive_integrate
+
+adaptive = adaptive_integrate(
+    surface,
+    lambda _: 1.0,
+    config,
+    relative_tolerance=1.0e-8,
+    max_iterations=4,
+    marking_fraction=0.25,
+)
+print(adaptive.summary())
 ```
 
 ## Contributing to `surfgeopy`

@@ -6,6 +6,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from .reference_quadrature import PULL_BACK_GAUSS
+from .remesh import subdivide
 from .surf_integration import (
     DEFAULT_INTEGRATION_DEGREE,
     accumulate_surface_integrals,
@@ -19,8 +20,11 @@ __all__ = [
     "IntegrationConfig",
     "IntegrationResult",
     "DiagnosticIntegrationResult",
+    "AdaptiveIteration",
+    "AdaptiveIntegrationResult",
     "integrate",
     "integrate_with_diagnostics",
+    "adaptive_integrate",
 ]
 
 
@@ -193,6 +197,70 @@ class DiagnosticIntegrationResult:
         )
 
 
+@dataclass(frozen=True)
+class AdaptiveIteration:
+    """One iteration of an adaptive integration run."""
+
+    iteration: int
+    n_faces: int
+    n_marked_faces: int
+    absolute_error_estimate: float
+    relative_error_estimate: float
+    total: float
+    marked_faces: np.ndarray
+
+
+@dataclass(frozen=True)
+class AdaptiveIntegrationResult:
+    """Result returned by :func:`adaptive_integrate`."""
+
+    diagnostics: DiagnosticIntegrationResult
+    final_surface: LevelSetSurface
+    history: tuple
+    converged: bool
+
+    @property
+    def total(self) -> float:
+        """Return the final enriched integral value."""
+        return self.diagnostics.total
+
+    @property
+    def absolute_error_estimate(self) -> float:
+        """Return the final global absolute error estimate."""
+        return self.diagnostics.absolute_error_estimate
+
+    @property
+    def relative_error_estimate(self) -> float:
+        """Return the final global relative error estimate."""
+        return self.diagnostics.relative_error_estimate
+
+    @property
+    def n_iterations(self) -> int:
+        """Return the number of adaptive diagnostic iterations."""
+        return len(self.history)
+
+    @property
+    def n_faces(self) -> int:
+        """Return the number of faces in the final mesh."""
+        return self.final_surface.mesh.n_faces
+
+    def summary(self) -> str:
+        """Return a compact text report for the adaptive run."""
+        status = "converged" if self.converged else "stopped before tolerance"
+        lines = [
+            f"Integral:              {self.total:.16g}",
+            f"Estimated abs. error:  {self.absolute_error_estimate:.3e}",
+            f"Estimated rel. error:  {self.relative_error_estimate:.3e}",
+            f"Iterations:            {self.n_iterations}",
+            f"Final faces:           {self.n_faces}",
+            f"Status:                {status}",
+        ]
+        if self.history:
+            last = self.history[-1]
+            lines.append(f"Last marked faces:     {last.n_marked_faces}")
+        return "\n".join(lines)
+
+
 def integrate(
     surface: LevelSetSurface,
     integrand: Callable[[np.ndarray], float] = lambda _: 1.0,
@@ -320,4 +388,110 @@ def integrate_with_diagnostics(
         recommended_config=recommended_config,
         absolute_tolerance=absolute_tolerance,
         relative_tolerance=relative_tolerance,
+    )
+
+
+def _mark_largest_indicators(
+    indicators: np.ndarray,
+    marking_fraction: float,
+    min_marked_faces: int,
+) -> np.ndarray:
+    if indicators.size == 0:
+        return np.array([], dtype=int)
+    n_marked = max(min_marked_faces, int(np.ceil(marking_fraction * indicators.size)))
+    n_marked = min(n_marked, indicators.size)
+    if n_marked <= 0:
+        return np.array([], dtype=int)
+    return np.argsort(indicators)[-n_marked:]
+
+
+def adaptive_integrate(
+    surface: LevelSetSurface,
+    integrand: Callable[[np.ndarray], float] = lambda _: 1.0,
+    config: Optional[IntegrationConfig] = None,
+    *,
+    absolute_tolerance: Optional[float] = None,
+    relative_tolerance: Optional[float] = 1.0e-8,
+    max_iterations: int = 4,
+    marking_fraction: float = 0.25,
+    min_marked_faces: int = 1,
+    interpolation_degree_step: int = 2,
+    integration_degree_step: int = 2,
+) -> AdaptiveIntegrationResult:
+    """Adaptively integrate by refining faces with large local indicators.
+
+    Each iteration calls :func:`integrate_with_diagnostics`, uses the per-face
+    difference between the base and enriched runs as a local error indicator,
+    and refines the marked faces by triangular quadrisection.
+
+    The current implementation intentionally uses a simple largest-indicator
+    marking rule. Local refinement may introduce hanging nodes in the reference
+    mesh, but each face is integrated independently and the refined faces still
+    partition the same reference triangles.
+    """
+    if config is None:
+        config = IntegrationConfig(interpolation_degree=6)
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be at least 1")
+    if not (0.0 < marking_fraction <= 1.0):
+        raise ValueError("marking_fraction must be in the interval (0, 1]")
+    if min_marked_faces < 1:
+        raise ValueError("min_marked_faces must be at least 1")
+
+    current_surface = surface
+    history = []
+    diagnostics = None
+
+    for iteration in range(max_iterations):
+        diagnostics = integrate_with_diagnostics(
+            current_surface,
+            integrand,
+            config,
+            interpolation_degree_step=interpolation_degree_step,
+            integration_degree_step=integration_degree_step,
+            absolute_tolerance=absolute_tolerance,
+            relative_tolerance=relative_tolerance,
+        )
+        marked_faces = _mark_largest_indicators(
+            diagnostics.local_absolute_errors,
+            marking_fraction,
+            min_marked_faces,
+        )
+        history.append(
+            AdaptiveIteration(
+                iteration=iteration,
+                n_faces=current_surface.mesh.n_faces,
+                n_marked_faces=int(marked_faces.size),
+                absolute_error_estimate=diagnostics.absolute_error_estimate,
+                relative_error_estimate=diagnostics.relative_error_estimate,
+                total=diagnostics.total,
+                marked_faces=marked_faces,
+            )
+        )
+
+        if diagnostics.target_reached or iteration == max_iterations - 1 or marked_faces.size == 0:
+            return AdaptiveIntegrationResult(
+                diagnostics=diagnostics,
+                final_surface=current_surface,
+                history=tuple(history),
+                converged=bool(diagnostics.target_reached),
+            )
+
+        vertices, faces = subdivide(
+            current_surface.mesh.vertices,
+            current_surface.mesh.faces,
+            face_index=marked_faces,
+        )
+        refined_mesh = SurfaceMesh(vertices, faces)
+        current_surface = LevelSetSurface(
+            refined_mesh,
+            current_surface.level_set,
+            current_surface.gradient,
+        )
+
+    return AdaptiveIntegrationResult(
+        diagnostics=diagnostics,
+        final_surface=current_surface,
+        history=tuple(history),
+        converged=bool(diagnostics and diagnostics.target_reached),
     )

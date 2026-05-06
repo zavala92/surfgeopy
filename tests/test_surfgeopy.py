@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from pathlib import Path
 from surfgeopy import (
+    AdaptiveIntegrationResult,
     DiagnosticIntegrationResult,
     ImplicitSurface,
     IntegrationConfig,
@@ -12,6 +13,7 @@ from surfgeopy import (
     ReferenceQuadrature,
     SurfaceMesh,
     affine_triangle_points,
+    adaptive_integrate,
     integrate,
     integrate_with_diagnostics,
     integration,
@@ -194,6 +196,52 @@ class TestSurfgeopyFunctions:
                 interpolation_degree_step=0,
                 integration_degree_step=0,
             )
+
+    def test_adaptive_integrate_refines_marked_faces(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(
+            interpolation_degree=4,
+            refinement_level=0,
+            integration_degree=8,
+            quadrature_rule="Gauss_Legendre",
+        )
+
+        adaptive = adaptive_integrate(
+            surface,
+            lambda _: 1.0,
+            config,
+            absolute_tolerance=0.0,
+            relative_tolerance=0.0,
+            max_iterations=2,
+            marking_fraction=0.1,
+        )
+
+        assert isinstance(adaptive, AdaptiveIntegrationResult)
+        assert adaptive.n_iterations == 2
+        assert adaptive.history[0].n_faces == mesh.n_faces
+        assert adaptive.history[0].n_marked_faces >= 1
+        assert adaptive.n_faces > mesh.n_faces
+        assert adaptive.absolute_error_estimate >= 0.0
+        assert adaptive.relative_error_estimate >= 0.0
+        assert "Final faces" in adaptive.summary()
+        assert np.abs(4 * np.pi - adaptive.total) < 1e-5
+
+    def test_adaptive_integrate_validates_parameters(self):
+        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
+        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
+        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
+        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
+        config = IntegrationConfig(interpolation_degree=4)
+
+        with pytest.raises(ValueError, match="max_iterations"):
+            adaptive_integrate(surface, lambda _: 1.0, config, max_iterations=0)
+        with pytest.raises(ValueError, match="marking_fraction"):
+            adaptive_integrate(surface, lambda _: 1.0, config, marking_fraction=0.0)
+        with pytest.raises(ValueError, match="min_marked_faces"):
+            adaptive_integrate(surface, lambda _: 1.0, config, min_marked_faces=0)
 
     def test_integration_config_validates_degrees(self):
         with pytest.raises(ValueError, match="interpolation_degree"):
