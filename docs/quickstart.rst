@@ -6,7 +6,7 @@ over an implicit surface.
 
 The basic workflow is:
 
-1. Load a triangulated reference mesh.
+1. Create or load a triangulated reference mesh.
 2. Define the implicit surface through ``phi`` and ``grad_phi``.
 3. Choose an ``IntegrationConfig``.
 4. Call ``integrate`` and read ``result.total``.
@@ -22,11 +22,39 @@ The unit sphere is represented as the zero level set
 
 Its exact area is :math:`4\pi`.
 
+From a terminal, the same smoke test is available as:
+
+.. code-block:: bash
+
+   surfgeopy demo
+
 .. code-block:: python
 
    import numpy as np
 
-   from surfgeopy import IntegrationConfig, LevelSetSurface, SurfaceMesh, integrate
+   from surfgeopy import IntegrationConfig, LevelSetSurface, integrate
+
+
+   surface = LevelSetSurface.unit_sphere(mesh_refinement_level=1)
+   config = IntegrationConfig(
+       interpolation_degree=4,
+       integration_degree=8,
+       quadrature_rule="Gauss_Legendre",
+   )
+
+   result = integrate(surface, lambda _: 1.0, config)
+   print(result.total)
+   print(4.0 * np.pi)
+   print(result.n_quadrature_points)
+
+For custom surfaces, build a ``SurfaceMesh`` and pass your own level-set
+functions:
+
+.. code-block:: python
+
+   import numpy as np
+
+   from surfgeopy import LevelSetSurface, SurfaceMesh
 
 
    def phi(x: np.ndarray) -> float:
@@ -37,18 +65,8 @@ Its exact area is :math:`4\pi`.
        return np.array([2.0 * x[0], 2.0 * x[1], 2.0 * x[2]])
 
 
-   mesh = SurfaceMesh.from_mat("tests/mesh_test/sphere_N=104.mat")
+   mesh = SurfaceMesh.icosphere(refinement_level=1)
    surface = LevelSetSurface(mesh, phi, grad_phi)
-   config = IntegrationConfig(
-       interpolation_degree=6,
-       refinement_level=1,
-       integration_degree=14,
-       quadrature_rule="Gauss_Legendre",
-   )
-
-   result = integrate(surface, lambda _: 1.0, config)
-   print(result.total)
-   print(result.n_quadrature_points)
 
 Result Object
 -------------
@@ -71,11 +89,34 @@ Result Object
 ``total``
    The total integral over the surface.
 
+Faster Repeated Integrations
+----------------------------
+
+If the surface and configuration stay fixed, build the quadrature once and
+reuse it for many scalar fields:
+
+.. code-block:: python
+
+   from surfgeopy import compile_integration
+
+   scheme = compile_integration(surface, config)
+   area = scheme.integrate(lambda _: 1.0)
+   z_second_moment = scheme.integrate(lambda x: x[2] ** 2)
+
+For NumPy-style functions, evaluate all quadrature points in one call:
+
+.. code-block:: python
+
+   z_second_moment = scheme.integrate(
+       lambda points: points[:, 2] ** 2,
+       vectorized=True,
+   )
+
 Estimate Accuracy
 -----------------
 
-For production runs, use ``integrate_with_diagnostics`` to compare the selected
-configuration with an enriched configuration:
+For accuracy-sensitive runs, use ``integrate_with_diagnostics`` to compare the
+selected configuration with an enriched configuration:
 
 .. code-block:: python
 

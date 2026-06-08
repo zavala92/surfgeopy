@@ -17,6 +17,8 @@ NB_OPTS = {"nogil": True}
 TOL_ZERO = np.finfo(np.float64).resolution * 100
 # how close to merge vertices
 TOL_MERGE = 1e-8
+_VERTEX_KEYS = ("vertices", "vertex", "verts", "xs", "points", "nodes", "coordinates")
+_FACE_KEYS = ("faces", "face", "surfs", "triangles", "tris", "elements", "connectivity")
 
 @njit(["float64(float64[:])"], **NB_OPTS)
 def compute_norm(vec: np.ndarray) -> float:
@@ -234,7 +236,7 @@ def SimpleImplicitSurfaceProjection(
 
     return x
 
-def read_mesh_data(mesh_path: str) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+def read_mesh_data(mesh_path: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Read mesh data from a MAT file.
 
@@ -245,26 +247,151 @@ def read_mesh_data(mesh_path: str) -> Tuple[Optional[np.ndarray], Optional[np.nd
 
     Returns
     -------
-    Tuple[Optional[np.ndarray], Optional[np.ndarray]]
+    Tuple[np.ndarray, np.ndarray]
         Vertices and faces data from the MAT file.
 
     Raises
     ------
     FileNotFoundError
         If the specified file does not exist.
-    Exception
-        If an error occurs during file reading.
+    ValueError
+        If the MAT file does not contain identifiable mesh arrays.
     """
     if not os.path.exists(mesh_path):
         raise FileNotFoundError(f"File not found: {mesh_path}")
 
-    try:
-        mesh_mat = scipy.io.loadmat(mesh_path)
-        key_list = list(mesh_mat.keys())
-        vertices = mesh_mat[key_list[-1]]
-        faces = mesh_mat[key_list[-2]] - 1  # Convert to zero-based indexing
+    mesh_mat = scipy.io.loadmat(mesh_path)
+    arrays = {
+        key: value
+        for key, value in mesh_mat.items()
+        if not key.startswith("__") and isinstance(value, np.ndarray)
+    }
+    if not arrays:
+        raise ValueError(f"No numeric array data found in MAT mesh file: {mesh_path}")
 
-        return vertices, faces
-    except Exception as e:
-        print(f"An error occurred while reading the mesh data: {e}")
-        return None, None
+    vertex_key = _named_mesh_key(arrays, _VERTEX_KEYS)
+    if vertex_key is None:
+        vertex_key = _infer_vertex_key(arrays)
+    vertices = _validate_vertices(arrays[vertex_key], vertex_key)
+
+    face_key = _named_mesh_key(arrays, _FACE_KEYS)
+    if face_key is None or face_key == vertex_key:
+        face_key = _infer_face_key(arrays, vertices.shape[0], exclude={vertex_key})
+    faces = _validate_faces(arrays[face_key], face_key, vertices.shape[0])
+
+    return vertices, faces
+
+
+def _named_mesh_key(arrays: dict, candidate_names: Tuple[str, ...]) -> Optional[str]:
+    keys_by_lower_name = {key.lower(): key for key in arrays}
+    for name in candidate_names:
+        key = keys_by_lower_name.get(name)
+        if key is not None:
+            return key
+    return None
+
+
+def _infer_vertex_key(arrays: dict) -> str:
+    candidates = [
+        key for key, value in arrays.items()
+        if _looks_like_vertices(value)
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise ValueError(
+            "Could not identify vertex coordinates in MAT file. "
+            f"Expected one of {', '.join(_VERTEX_KEYS)} or a unique (n, 3) float array."
+        )
+    raise ValueError(
+        "Could not uniquely identify vertex coordinates in MAT file. "
+        f"Candidates: {', '.join(candidates)}"
+    )
+
+
+def _infer_face_key(arrays: dict, n_vertices: int, *, exclude: set) -> str:
+    candidates = [
+        key for key, value in arrays.items()
+        if key not in exclude and _looks_like_faces(value, n_vertices)
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise ValueError(
+            "Could not identify face connectivity in MAT file. "
+            f"Expected one of {', '.join(_FACE_KEYS)} or a unique integer connectivity array."
+        )
+    raise ValueError(
+        "Could not uniquely identify face connectivity in MAT file. "
+        f"Candidates: {', '.join(candidates)}"
+    )
+
+
+def _looks_like_vertices(value: np.ndarray) -> bool:
+    array = _mesh_array(value)
+    return (
+        array.ndim == 2
+        and array.shape[1] == 3
+        and np.issubdtype(array.dtype, np.floating)
+        and np.all(np.isfinite(array))
+    )
+
+
+def _looks_like_faces(value: np.ndarray, n_vertices: int) -> bool:
+    array = _mesh_array(value)
+    if array.ndim != 2 or array.shape[1] < 3 or not np.all(np.isfinite(array)):
+        return False
+    if not _is_integer_like(array):
+        return False
+    faces = np.rint(array).astype(int)
+    if faces.size == 0:
+        return True
+    min_index = int(np.min(faces))
+    max_index = int(np.max(faces))
+    return (min_index >= 0 and max_index < n_vertices) or (min_index >= 1 and max_index <= n_vertices)
+
+
+def _validate_vertices(value: np.ndarray, key: str) -> np.ndarray:
+    vertices = _mesh_array(value).astype(float)
+    if vertices.ndim != 2 or vertices.shape[1] != 3:
+        raise ValueError(f"MAT variable {key!r} must have shape (n_vertices, 3)")
+    if not np.all(np.isfinite(vertices)):
+        raise ValueError(f"MAT variable {key!r} contains non-finite vertex coordinates")
+    return vertices
+
+
+def _validate_faces(value: np.ndarray, key: str, n_vertices: int) -> np.ndarray:
+    faces_array = _mesh_array(value)
+    if faces_array.ndim != 2 or faces_array.shape[1] < 3:
+        raise ValueError(f"MAT variable {key!r} must have shape (n_faces, n_vertices_per_face)")
+    if not np.all(np.isfinite(faces_array)):
+        raise ValueError(f"MAT variable {key!r} contains non-finite face indices")
+    if not _is_integer_like(faces_array):
+        raise ValueError(f"MAT variable {key!r} must contain integer face indices")
+
+    faces = np.rint(faces_array).astype(int)
+    if faces.size == 0:
+        return faces
+    min_index = int(np.min(faces))
+    max_index = int(np.max(faces))
+    if min_index >= 1 and max_index <= n_vertices:
+        faces = faces - 1
+    elif min_index < 0 or max_index >= n_vertices:
+        raise ValueError(
+            f"MAT variable {key!r} references vertices outside the valid range "
+            f"0..{n_vertices - 1} or 1..{n_vertices}"
+        )
+    return faces
+
+
+def _is_integer_like(array: np.ndarray) -> bool:
+    return np.all(np.isclose(array, np.rint(array), rtol=0.0, atol=1.0e-12))
+
+
+def _mesh_array(value: np.ndarray) -> np.ndarray:
+    array = np.asarray(value)
+    if array.ndim > 2:
+        array = np.squeeze(array)
+    if array.ndim == 1:
+        array = array.reshape(1, -1)
+    return array

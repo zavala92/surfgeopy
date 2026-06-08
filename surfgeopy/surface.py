@@ -77,4 +77,14 @@ def project_triangle_nodes(
 ) -> np.ndarray:
     """Project affine triangle nodes onto an implicit surface."""
     affine_points = affine_triangle_points(vertices, barycentric_points)
-    return np.array([surface.project(point) for point in affine_points])
+    projected_points = []
+    for index, point in enumerate(affine_points):
+        projection = surface.project_with_info(point)
+        if not projection.converged:
+            raise RuntimeError(
+                "Projection failed to converge for triangle node "
+                f"{index}: residual={projection.residual:.3e}, "
+                f"iterations={projection.iterations}"
+            )
+        projected_points.append(projection.point)
+    return np.array(projected_points)

@@ -1,27 +1,75 @@
 [build-system]
-requires = ["wheel", "setuptools == 68.2.2", "setuptools_scm[toml]>=3.4"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "surfgeopy"
-version = "1.0.0-alpha"
+version = "1.0.0a0"
 authors = [
   { name="Gentian Zavalani", email="g.zavalani@hzdr.de" },
 ]
 description = "High-order volume elements (HOVE) designed for the integration of scalar functions over regular embedded manifolds."
 readme = "README.md"
 requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Development Status :: 1 - Planning",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Science/Research",
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = [
+    "surface integration",
+    "implicit surfaces",
+    "quadrature",
+    "scientific computing",
+    "numerical analysis",
 ]
+dependencies = [
+    "attrs>=22.2.0",
+    "matplotlib>=3.7",
+    "minterpy>=0.3.1",
+    "modepy>=2026.1",
+    "numba>=0.59",
+    "numpy>=1.23",
+    "scipy>=1.10",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.optional-dependencies]
+docs = [
+    "sphinx_rtd_theme",
+]
+test = [
+    "pytest>=7",
+    "pytest-cov>=2.12.0",
+]
+
+[project.scripts]
+surfgeopy = "surfgeopy.cli:main"
 
 [project.urls]
 "Homepage" = "https://github.com/zavala92/surfgeopy"
+"Documentation" = "https://surfgeopy.readthedocs.io"
+"Source" = "https://github.com/zavala92/surfgeopy"
 "Bug Tracker" = "https://github.com/zavala92/surfgeopy/issues"
 
-[tool.setuptools_scm]
-write_to = "surfgeopy/version.py"
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["surfgeopy*"]
+
+[tool.setuptools.exclude-package-data]
+surfgeopy = [
+    ".buildinfo",
+    ".doctrees/*",
+    ".doctrees/**/*",
+]

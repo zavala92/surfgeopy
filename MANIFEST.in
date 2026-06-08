@@ -1,6 +1,9 @@
 prune *
 graft surfgeopy
 graft tests
+prune surfgeopy/.doctrees
+exclude surfgeopy/.buildinfo
 
 include LICENSE README.md pyproject.toml setup.py setup.cfg
+include examples/README.md examples/quickstart_sphere_area.py
 global-exclude __pycache__ *.py[cod] .*

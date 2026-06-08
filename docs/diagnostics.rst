@@ -68,6 +68,34 @@ The estimate is not a rigorous proof of the error. It is a practical numerical
 diagnostic: if enriching the geometry and quadrature hardly changes the answer,
 the computed integral is usually stable with respect to those parameters.
 
+Refinement Diagnostics
+----------------------
+
+``refine_by_indicator`` returns an ``IndicatorRefinementResult`` with a compact
+summary and a per-iteration trace. Each ``history`` entry records the raw
+indicator values, min/mean/median/std/max indicator statistics, the threshold,
+the marked face IDs, marked-face fraction, mesh size before and after the
+iteration, and any terminal stop reason.
+
+.. code-block:: python
+
+   adapted = refine_by_indicator(
+       surface,
+       indicator,
+       max_iterations=6,
+       threshold_fraction=0.25,
+   )
+
+   print(adapted.summary())
+   print(adapted.face_counts)
+   print(adapted.marked_fractions)
+   print(adapted.stop_reason)
+
+The result-level arrays are intended for logs and convergence plots:
+``face_counts`` and ``vertex_counts`` show mesh growth, while
+``max_indicators``, ``mean_indicators``, and ``marked_fractions`` show how the
+indicator evolved over the adaptation pass.
+
 Projection Diagnostics
 ----------------------
 
