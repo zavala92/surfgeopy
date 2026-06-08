@@ -9,10 +9,8 @@ You provide a level-set function, its gradient, and a triangular reference
 mesh; `surfgeopy` builds high-order curved surface patches and returns
 quadrature values, points, weights, and diagnostics.
 
-The main, stable workflow is high-order integration of smooth scalar functions
-on implicit surfaces. The singular and PDE-oriented modules are included as
-research prototypes for users who want to explore near-singular quadrature and
-surface-operator experiments.
+The main workflow is high-order integration of smooth scalar functions on
+implicit surfaces.
 
 ## Install
 
@@ -76,13 +74,13 @@ closest-point projection. The resulting curved patch is represented by a
 Minterpy Newton interpolant on a square parameter domain. Surface integrals are
 then evaluated by high-order quadrature on the interpolated patch.
 
-The long-term numerical trajectory is:
+The numerical trajectory is:
 
 ```text
 smooth high-order surface quadrature
--> singular and near-singular integral operators
--> layer potentials and screened Laplace-Beltrami prototypes
--> future surface PDE and integral-equation solvers on implicit manifolds
+-> reusable geometry and quadrature diagnostics
+-> robust mesh and high-order interoperability
+-> future surface-analysis workflows on implicit manifolds
 ```
 
 ## Core Idea
@@ -132,24 +130,9 @@ Implemented and tested core functionality:
 - per-face quadrature values, points, weights, and offsets,
 - diagnostic integration by comparing base and enriched configurations,
 - indicator-based conforming reference-mesh refinement,
-- differential geometry samples from the interpolated surface map.
-
-Experimental functionality:
-
-- square-squeezed product integration (SSPI) for Laplace single-layer kernels,
-- singular and near-singular target classification,
-- Chebyshev-tail diagnostics for singular product integration,
-- metric and curvature-corrected local singular models,
-- hybrid SSPI-QBX evaluation for near-surface Laplace single-layer targets,
-- screened Laplace-Beltrami parametrix prototypes.
-
-Prototype examples:
-
-- harmonic extension by a single-layer boundary integral equation on the sphere,
-- screened Laplace-Beltrami examples for
-  `(alpha - Delta_Gamma) u = f` on the sphere,
-- a split screened Green kernel:
-  local singular parametrix plus smooth Chebyshev remainder.
+- differential geometry samples from the interpolated surface map,
+- FFT-backed tensor Chebyshev validation utilities for square-patch
+  experiments.
 
 ## Geometry And Quadrature Pipeline
 
@@ -228,54 +211,6 @@ Available quadrature rules include:
   square-squeezing.
 - `"Gauss_Legendre"`: tensor-product Gauss-Legendre quadrature on the square.
 
-## Singular And Near-Singular Integral Operators
-
-The experimental singular module is in `surfgeopy/singular_integrals.py`. It
-currently focuses on Laplace single-layer potentials of the form
-
-```text
-u(x) = int_Gamma sigma(y) / (4*pi*|x-y|) dS_y.
-```
-
-The implementation builds the same square-squeezed high-order surface patches
-as the smooth quadrature code, then applies product integration on panels close
-to the target. The present research features are:
-
-- SSPI for singular and near-singular Laplace single-layer evaluation,
-- Chebyshev expansion of the smooth factor on the square,
-- singular moment integration with Duffy-type subdivisions,
-- Chebyshev-tail indicators and base/enriched diagnostic comparisons,
-- curvature-corrected quadratic/quartic distance models,
-- a hybrid SSPI-QBX path with diagnostic radius/order data.
-
-These features are tested on canonical sphere problems with known analytic
-answers. They are not yet a general-purpose boundary integral equation library.
-
-## PDE And Integral-Equation Prototypes
-
-The PDE-oriented examples are deliberately labeled as prototypes. They show how
-the quadrature and singular-integration machinery can be used in early surface
-operator experiments:
-
-- `examples/harmonic_extension_integral_equation.py` assembles a small
-  single-layer boundary integral equation for harmonic extension on the sphere.
-- `examples/screened_laplace_beltrami_integral_operator.py` applies the exact
-  spherical screened Green operator for a manufactured solution.
-- `examples/screened_laplace_beltrami_parametrix.py` studies a split kernel:
-  curvature-corrected local singular parametrix plus smooth Chebyshev
-  remainder.
-- `examples/screened_laplace_beltrami_sspi_parametrix.py` connects that split
-  kernel to the SSPI quadrature path.
-
-These examples are first steps toward solving problems of the form
-
-```text
-(alpha - Delta_Gamma) u = f
-```
-
-using integral operators on implicit manifolds. A general screened
-Laplace-Beltrami solver on arbitrary surfaces is future work.
-
 ## Examples
 
 The examples are organized conceptually in `examples/README.md`.
@@ -286,36 +221,16 @@ Core geometry and quadrature:
 - `examples/Test_integration_on_the_whole_sphere.ipynb`
 - `examples/Test_integration_on_torus.ipynb`
 - `examples/Gauss_Bonnet_theorem_bench.ipynb`
-
-Singular and near-singular operators:
-
-- `examples/laplace_single_layer_sphere_error.py`
-- `examples/laplace_single_layer_near_singular_convergence.py`
-- `examples/laplace_single_layer_spherical_harmonic_error.py`
-- `examples/laplace_single_layer_moment_convergence.py`
-- `examples/laplace_single_layer_diagnostics.py`
-- `examples/laplace_single_layer_hybrid_qbx.py`
-
-PDE and integral-equation prototypes:
-
-- `examples/harmonic_extension_integral_equation.py`
-- `examples/screened_laplace_beltrami_integral_operator.py`
-- `examples/screened_laplace_beltrami_parametrix.py`
-- `examples/screened_laplace_beltrami_sspi_parametrix.py`
-- `examples/pde/screened_laplace_beltrami_sphere_convergence.py`
+- `examples/adapted_mesh_Gauss_Bonnet_benchmark.ipynb`
 
 ## Current Limitations
 
 - The high-order geometry pipeline assumes an implicit representation and a
   usable gradient for closest-point projection.
-- The singular integration module is experimental and currently focused on
-  Laplace single-layer and screened-parametrix kernels.
-- The screened Laplace-Beltrami code is a prototype validated on the unit
-  sphere; arbitrary-surface screened Green remainders are not yet implemented.
-- Adaptive refinement is available for the reference mesh, but automatic
-  accuracy control for singular operators is still under development.
-- The package does not yet provide a general surface PDE solver, matrix-free
-  fast summation, or production-ready boundary integral equation assembly.
+- Adaptive refinement is available for the reference mesh, but fully automatic
+  accuracy control is still under development.
+- The package currently focuses on smooth scalar surface integration rather
+  than general surface PDE solvers.
 
 ## Research Direction
 
@@ -324,17 +239,15 @@ The intended research direction is:
 ```text
 implicit surface geometry
 + high-order cubical reparametrization
-+ singular/near-singular product integration
 + adaptive diagnostics
-= future surface PDE and integral-equation solvers
+= reliable smooth-surface quadrature workflows
 ```
 
 Near-term development should focus on:
 
-- clearer diagnostics for singular and near-singular quadrature,
 - stronger convergence studies on analytic surfaces,
-- robust local/global remainder models for screened kernels,
-- small reproducible integral-equation examples,
+- better diagnostics and automatic configuration guidance,
+- broader mesh interoperability,
 - careful performance profiling before large-scale solvers are introduced.
 
 ## Install

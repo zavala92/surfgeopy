@@ -62,41 +62,6 @@ The main user-facing classes are:
    Evaluates Minterpy spectral derivatives of the high-order surface map and
    returns differential geometry quantities at the quadrature points.
 
-Experimental Singular And PDE Prototype APIs
---------------------------------------------
-
-The following names are available from ``surfgeopy`` but should be treated as
-research implementations. They are useful for reproducing the included
-singular-kernel and screened Laplace-Beltrami experiments, but they are not yet
-a stable general integral-equation API.
-
-``SingularIntegrationConfig``
-   Configuration for experimental square-squeezed product integration (SSPI)
-   of Laplace single-layer potentials.
-
-``LaplaceSingleLayerOperator``
-   Reusable prototype evaluator for the Laplace single-layer potential. It
-   supports an SSPI path and an experimental hybrid SSPI-QBX path.
-
-``SingularIntegralResult``
-   Potential values and near/singular panel counts. Hybrid QBX runs also report
-   QBX flags, radii, orders, convergence ratios, and diagnostic estimates.
-
-``SingularDiagnosticResult``
-   Base/enriched diagnostic data for SSPI, including Chebyshev-tail indicators
-   and corrected-panel counts.
-
-``ScreenedParametrixConfig``
-   Configuration for the screened Laplace-Beltrami parametrix prototype.
-
-``ScreenedLaplaceBeltramiParametrixOperator``
-   Prototype evaluator for a split screened Green kernel: local singular
-   parametrix plus a user-supplied smooth remainder.
-
-``ScreenedParametrixResult``
-   Potential values, near/singular panel counts, and accumulated tail
-   indicators for the screened parametrix prototype.
-
 Example
 -------
 

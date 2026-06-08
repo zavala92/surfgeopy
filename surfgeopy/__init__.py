@@ -16,7 +16,6 @@ _SUBMODULES = {
     "quadrature_points_gl",
     "reference_quadrature",
     "remesh",
-    "singular_integrals",
     "spectral",
     "surf_integration",
     "surface",
@@ -87,16 +86,6 @@ _SYMBOL_TO_MODULE = {
     # Mesh I/O helpers
     "read_gmsh_mesh": "mesh_io",
     "write_gmsh_mesh": "mesh_io",
-    # Experimental singular and PDE prototype APIs
-    "SingularIntegrationConfig": "singular_integrals",
-    "SingularIntegralResult": "singular_integrals",
-    "SingularDiagnosticResult": "singular_integrals",
-    "ScreenedParametrixConfig": "singular_integrals",
-    "ScreenedParametrixResult": "singular_integrals",
-    "LaplaceSingleLayerOperator": "singular_integrals",
-    "ScreenedLaplaceBeltramiParametrixOperator": "singular_integrals",
-    "laplace_single_layer_potential": "singular_integrals",
-    "screened_laplace_beltrami_parametrix": "singular_integrals",
     # FFT-backed tensor Chebyshev validation helpers
     "chebyshev_lobatto_nodes": "spectral",
     "chebyshev_coefficients_2d": "spectral",

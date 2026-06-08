@@ -1,13 +1,10 @@
-import importlib.util
 import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
-from numpy.polynomial.chebyshev import chebfit, chebval
 import scipy.io
-from scipy import special
 from surfgeopy import (
     DiagnosticIntegrationResult,
     DEFAULT_QUADRATURE_RULE,
@@ -16,7 +13,6 @@ from surfgeopy import (
     IndicatorRefinementResult,
     IntegrationConfig,
     IntegrationResult,
-    LaplaceSingleLayerOperator,
     LevelSetSurface,
     MODEPY_GRUNDMANN_MOELLER,
     MODEPY_SIMPLEX_RULES,
@@ -25,14 +21,8 @@ from surfgeopy import (
     PatchGeometry,
     ProjectionResult,
     ReferenceQuadrature,
-    ScreenedLaplaceBeltramiParametrixOperator,
-    ScreenedParametrixConfig,
-    ScreenedParametrixResult,
     SurfaceGeometryResult,
     SurfaceMesh,
-    SingularDiagnosticResult,
-    SingularIntegralResult,
-    SingularIntegrationConfig,
     affine_triangle_points,
     chebyshev_coefficients_2d,
     chebyshev_derivative_coefficients_2d,
@@ -43,7 +33,6 @@ from surfgeopy import (
     integrate,
     integrate_with_diagnostics,
     integration,
-    laplace_single_layer_potential,
     make_reference_quadrature,
     project_triangle_nodes,
     pullback,
@@ -51,7 +40,6 @@ from surfgeopy import (
     quadrule_on_simplex,
     read_mesh_data,
     simplex_barycentric_coordinates,
-    screened_laplace_beltrami_parametrix,
     surface_geometry,
     refine_by_indicator,
     subdivide,
@@ -865,219 +853,6 @@ class TestSurfgeopyFunctions:
                              refinement_level, constant_function, deg_integration=integration_degree,
                              quadrature_rule=quadrature_rule)
         assert np.abs(4 * np.pi - np.sum(result)) < 1e-10
-
-    def test_laplace_single_layer_prototype_on_unit_sphere(self):
-        zero_levelset_function = lambda x: x[0]**2 + x[1]**2 + x[2]**2 - 1
-        gradient_function = lambda x: np.array([2*x[0], 2*x[1], 2*x[2]])
-        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
-        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
-        config = SingularIntegrationConfig(
-            interpolation_degree=4,
-            regular_order=8,
-            smooth_degree=4,
-            moment_order=18,
-            correction_order=10,
-            near_threshold=1.5,
-        )
-        assert config.singular_model == "curvature"
-        with pytest.raises(ValueError, match="singular_model"):
-            SingularIntegrationConfig(singular_model="linear")
-        with pytest.raises(ValueError, match="evaluation_strategy"):
-            SingularIntegrationConfig(evaluation_strategy="qbx")
-
-        target = mesh.vertices[0] / np.linalg.norm(mesh.vertices[0])
-        result = laplace_single_layer_potential(surface, target, config=config)
-
-        assert isinstance(result, SingularIntegralResult)
-        assert result.values.shape == (1,)
-        assert result.qbx_target_flags is None
-        assert result.qbx_radii is None
-        assert result.qbx_orders is None
-        assert result.qbx_convergence_ratios is None
-        assert result.qbx_error_estimates is None
-        assert result.near_panel_counts[0] > 0
-        assert result.singular_panel_counts[0] > 0
-        assert abs(result.values[0] - 1.0) < 0.15
-
-        near_target = 1.001 * target
-        near_result = LaplaceSingleLayerOperator(surface, config).evaluate(near_target)
-
-        assert near_result.near_panel_counts[0] > 0
-        assert near_result.singular_panel_counts[0] == 0
-        assert abs(near_result.values[0] - 1.0 / 1.001) < 1.0e-3
-
-        hybrid_config = SingularIntegrationConfig(
-            interpolation_degree=4,
-            regular_order=8,
-            smooth_degree=4,
-            moment_order=18,
-            correction_order=10,
-            near_threshold=1.5,
-            evaluation_strategy="hybrid_qbx",
-            qbx_order=8,
-            qbx_quadrature_order=20,
-            qbx_radius_factor=0.5,
-        )
-        hybrid_result = LaplaceSingleLayerOperator(surface, hybrid_config).evaluate(target)
-
-        assert hybrid_result.qbx_target_flags.shape == (1,)
-        assert hybrid_result.qbx_target_flags[0]
-        assert hybrid_result.qbx_radii.shape == (1,)
-        assert hybrid_result.qbx_orders.shape == (1,)
-        assert hybrid_result.qbx_convergence_ratios.shape == (1,)
-        assert hybrid_result.qbx_error_estimates.shape == (1,)
-        assert hybrid_result.qbx_radii[0] > 0.0
-        assert hybrid_result.qbx_orders[0] == hybrid_config.qbx_order
-        assert hybrid_result.qbx_convergence_ratios[0] >= 0.0
-        assert hybrid_result.qbx_error_estimates[0] >= 0.0
-        assert hybrid_result.near_panel_counts[0] > 0
-        assert hybrid_result.singular_panel_counts[0] > 0
-        assert abs(hybrid_result.values[0] - 1.0) < 5.0e-5
-
-        operator = LaplaceSingleLayerOperator(surface, config)
-        operator_result = operator.evaluate(target)
-
-        assert operator.n_patches == mesh.n_faces
-        np.testing.assert_allclose(operator_result.values, result.values)
-
-        diagnostic = operator.evaluate_with_diagnostics(target, target_tolerance=1.0e-8)
-
-        assert isinstance(diagnostic, SingularDiagnosticResult)
-        assert diagnostic.values.shape == (1,)
-        assert diagnostic.base_values.shape == (1,)
-        assert diagnostic.enriched_values.shape == (1,)
-        assert diagnostic.tail_indicators.shape == (1,)
-        assert diagnostic.max_tail_indicators.shape == (1,)
-        assert diagnostic.absolute_error_estimates[0] >= 0.0
-        assert diagnostic.tail_indicators[0] >= 0.0
-        assert diagnostic.max_tail_indicators[0] >= 0.0
-        assert diagnostic.tail_indicators[0] >= diagnostic.max_tail_indicators[0]
-        assert diagnostic.near_panel_counts[0] > 0
-        assert diagnostic.singular_panel_counts[0] > 0
-        assert diagnostic.corrected_panel_counts[0] > 0
-        assert diagnostic.recommended_config.interpolation_degree > config.interpolation_degree
-        assert diagnostic.n_base_patches == mesh.n_faces
-        assert diagnostic.n_enriched_patches_built <= diagnostic.n_base_patches
-        assert 0.0 < diagnostic.enriched_patch_fraction <= 1.0
-
-    def test_screened_laplace_beltrami_parametrix_on_unit_sphere(self):
-        alpha = 0.1
-        degree = (-1.0 + np.sqrt(1.0 - 4.0 * alpha)) / 2.0
-
-        def exact_green(cosine):
-            return -special.lpmv(0, degree, -cosine) / (4.0 * np.sin(np.pi * degree))
-
-        def singular_green(cosine):
-            chord = np.sqrt(np.maximum(2.0 * (1.0 - cosine), np.finfo(float).tiny))
-            distance = chord * (1.0 + chord**2 / 24.0 + 3.0 * chord**4 / 640.0)
-            return special.k0(np.sqrt(alpha) * distance) / (2.0 * np.pi)
-
-        cosine_samples = np.cos(np.linspace(np.pi, 1.0e-4, 1000))
-        remainder_coefficients = chebfit(
-            cosine_samples,
-            exact_green(cosine_samples) - singular_green(cosine_samples),
-            12,
-        )
-
-        def smooth_remainder(source, target):
-            cosine = np.clip(np.dot(source, target), -1.0, 1.0)
-            return float(chebval(cosine, remainder_coefficients))
-
-        def zero_levelset_function(x):
-            return x[0] ** 2 + x[1] ** 2 + x[2] ** 2 - 1
-
-        def gradient_function(x):
-            return np.array([2 * x[0], 2 * x[1], 2 * x[2]])
-
-        def density(point):
-            z = point[2]
-            y1 = z
-            y2 = 0.5 * (3.0 * z**2 - 1.0)
-            return y1 + 0.25 * y2
-
-        mesh = SurfaceMesh.from_mat(str(MESH_PATH))
-        surface = LevelSetSurface(mesh, zero_levelset_function, gradient_function)
-        config = ScreenedParametrixConfig(
-            interpolation_degree=3,
-            regular_order=8,
-            smooth_degree=4,
-            moment_order=14,
-            near_threshold=1.5,
-        )
-        with pytest.raises(ValueError, match="alpha"):
-            ScreenedLaplaceBeltramiParametrixOperator(surface, 0.0, config)
-        with pytest.raises(ValueError, match="singular_model"):
-            ScreenedParametrixConfig(singular_model="linear")
-
-        target = mesh.vertices[0] / np.linalg.norm(mesh.vertices[0])
-        result = screened_laplace_beltrami_parametrix(
-            surface,
-            target,
-            alpha,
-            density,
-            smooth_remainder,
-            config,
-        )
-
-        z = target[2]
-        exact_value = z / (alpha + 2.0) + 0.25 * (0.5 * (3.0 * z**2 - 1.0)) / (
-            alpha + 6.0
-        )
-
-        assert isinstance(result, ScreenedParametrixResult)
-        assert result.values.shape == (1,)
-        assert result.near_panel_counts[0] > 0
-        assert result.singular_panel_counts[0] > 0
-        assert result.tail_indicators[0] >= 0.0
-        assert abs(result.values[0] - exact_value) < 2.0e-2
-
-        operator = ScreenedLaplaceBeltramiParametrixOperator(
-            surface,
-            alpha,
-            config,
-            smooth_remainder,
-        )
-        assert operator.n_patches == mesh.n_faces
-        np.testing.assert_allclose(operator.evaluate(target, density).values, result.values)
-
-    def test_screened_laplace_beltrami_convergence_benchmark_smoke(self):
-        module_path = (
-            Path(__file__).parents[1]
-            / "examples"
-            / "pde"
-            / "screened_laplace_beltrami_sphere_convergence.py"
-        )
-        spec = importlib.util.spec_from_file_location(
-            "screened_laplace_beltrami_sphere_convergence",
-            module_path,
-        )
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = module
-        spec.loader.exec_module(module)
-
-        points = np.array([[0.0, 0.0, 1.0], [1.0, 0.0, 0.0]])
-        np.testing.assert_allclose(
-            module.manufactured_rhs(points, 0.1),
-            np.array([2.1, 0.0]),
-        )
-
-        geometry_rows = module.run_geometry_study(
-            MESH_PATH,
-            interpolation_degree=3,
-            integration_degree=3,
-            refinement_levels=(0, 1),
-        )
-
-        assert len(geometry_rows) == 2
-        assert np.isfinite(geometry_rows[0].l2_error)
-        assert np.isfinite(geometry_rows[1].l2_error)
-        assert geometry_rows[1].l2_error < geometry_rows[0].l2_error
-
-        remainder_rows = module.run_remainder_study(degrees=(2, 4))
-
-        assert len(remainder_rows) == 2
-        assert np.isfinite(remainder_rows[0].max_error)
-        assert remainder_rows[1].max_error < remainder_rows[0].max_error
 
 if __name__ == '__main__':
     pytest.main()
